@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Lunaria Books & Stationery"
+description = "A polished bookstore and stationery storefront prototype for readers, students, and journaling lovers. Browse curated books and desk treasures, search and filter the catalog, and manage a persistent demo cart and wishlist."
+version = "1.0.0"
+id = "artifacts/lunaria-books"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23989
+
+[services.development]
+run = "pnpm --filter @workspace/lunaria-books run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/lunaria-books", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/lunaria-books/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23989"
+BASE_PATH = "/"

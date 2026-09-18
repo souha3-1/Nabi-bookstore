@@ -1,0 +1,1055 @@
+PROJECT: Modern Bookstore & Stationery E-commerce Website Prototype
+
+1. PROJECT OVERVIEW
+
+Build a beautiful, modern, responsive e-commerce website prototype for a
+bookstore and stationery brand.
+
+The store sells books, notebooks, journals, planners, pens, pencils, art
+supplies, stickers, and other stationery products.
+
+The website should feel like a creative, cozy, aesthetic bookstore
+combined with a curated stationery shop. It should be visually appealing
+to young adults, students, readers, and people who love journaling and
+cute stationery.
+
+The goal is to create a polished website prototype that looks like a
+real modern online bookstore—not a generic AI-generated shop.
+
+The website must have a strong visual identity based on the provided
+pink and purple color palette, with clean layouts, attractive product
+presentation, and a smooth demo shopping experience.
+
+This is an original design inspired by the visual mood of the provided
+Instagram references. Do not clone Instagram or copy another bookstore
+website.
+
+IMPORTANT: THIS IS ONLY A PROTOTYPE. Prioritize visual quality, UI/UX,
+mock data, and simulated interactions. Do not build unnecessary
+production infrastructure.
+
+------------------------------------------------------------------------
+
+2. TARGET USERS
+
+Primary users:
+
+-   Readers who want to discover and buy books.
+-   Students looking for notebooks, pens, and school supplies.
+-   People interested in journaling, planners, and creative stationery.
+-   Customers searching for gifts.
+-   Young adults who appreciate aesthetic, colorful, modern products.
+
+The interface should be easy to use for both casual visitors and
+customers who know exactly what they want to buy.
+
+------------------------------------------------------------------------
+
+3. BRAND / VISUAL IDENTITY
+
+Overall visual direction
+
+Create a soft, playful, editorial bookstore aesthetic.
+
+The visual style should combine:
+
+-   Modern independent bookstore.
+-   Cozy reading culture.
+-   Aesthetic stationery shop.
+-   Soft pastel colors.
+-   Editorial typography.
+-   Clean e-commerce layouts.
+-   Subtle playful details.
+-   High-quality product photography.
+
+The website should feel warm, creative, premium, and approachable.
+
+Avoid making it look like a childish toy store or an overly corporate
+e-commerce platform.
+
+Color palette
+
+Use this palette as the foundation of the entire website.
+
+The colors are taken from the provided palette reference and may be
+adjusted slightly for accessibility and contrast.
+
+Primary colors:
+
+-   Soft Pink: #F8B2B2
+-   Dusty Mauve / Rose Purple: #B274A2
+-   Muted Purple: #8B659C
+-   Deep Indigo: #48458F
+
+Additional supporting colors:
+
+-   Warm Off-White: #FFF9F7
+-   Soft Cream: #FFF1EC
+-   Dark Plum Text: #30263B
+-   Soft Lavender: #E8D7F0
+-   Light Pink: #FCE0E0
+
+Color usage:
+
+-   Use soft pink for selected highlights, promotional sections, and
+    gentle accents.
+-   Use mauve and muted purple for secondary backgrounds and category
+    areas.
+-   Use deep indigo for primary buttons, important text, navigation
+    accents, and strong visual elements.
+-   Use warm off-white and cream as the main background colors to keep
+    the website comfortable and readable.
+-   Use dark plum for body text instead of pure black where appropriate.
+
+Do not use every color everywhere. Maintain a balanced, elegant color
+hierarchy.
+
+Important: Text must have sufficient contrast against its background. Do
+not place dark purple text on dark purple backgrounds or low-contrast
+text on pink backgrounds.
+
+Typography
+
+Use a modern, editorial typography system.
+
+Suggested font pairing:
+
+-   Headings: Playfair Display, Cormorant Garamond, or another elegant
+    serif font.
+-   Body text and interface: Inter, DM Sans, or another clean sans-serif
+    font.
+
+Typography should feel like a contemporary independent bookstore.
+
+Use:
+
+-   Large editorial headings.
+-   Clear readable product titles.
+-   Comfortable body text.
+-   Strong visual hierarchy.
+-   Generous line-height.
+-   Proper spacing between headings and content.
+
+Do not use too many different fonts.
+
+Shapes and layout
+
+-   Soft rounded corners on cards and buttons.
+-   Clean rectangular product grids.
+-   Spacious layouts.
+-   Subtle borders.
+-   Occasional organic decorative shapes.
+-   Elegant rounded promotional banners.
+-   Consistent spacing system.
+-   Avoid excessive shadows.
+-   Avoid excessive gradients.
+-   Avoid clutter.
+
+The website should feel carefully designed, not like a template with
+random components.
+
+Imagery
+
+Use high-quality placeholder product images if real product images are
+not provided.
+
+For books:
+
+-   Fiction books.
+-   Romance books.
+-   Mystery books.
+-   Young adult books.
+-   Literary books.
+-   Popular reading titles.
+
+For stationery:
+
+-   Notebooks.
+-   Journals.
+-   Planners.
+-   Colorful pens.
+-   Highlighters.
+-   Stickers.
+-   Washi tape.
+-   Art supplies.
+-   Cute desk accessories.
+
+Use realistic product imagery with consistent aspect ratios and clean
+backgrounds.
+
+Do not use random unrelated images.
+
+If image loading is unreliable, use attractive local placeholder assets
+or styled product placeholders.
+
+------------------------------------------------------------------------
+
+4. INFORMATION ARCHITECTURE
+
+Create the following pages:
+
+1.  Home
+2.  Shop All
+3.  Books
+4.  Stationery
+5.  Product Details
+6.  About Us
+7.  Contact
+8.  Shopping Cart
+9.  Wishlist
+10. Search Results
+
+Optional pages if useful:
+
+-   New Arrivals
+-   Bestsellers
+-   Gift Ideas
+-   Journal & Planner Collection
+
+Main navigation
+
+Create a clean, responsive navigation bar.
+
+Left:
+
+-   Brand logo / bookstore name placeholder.
+
+Center or main navigation:
+
+-   Home
+-   Shop
+-   Books
+-   Stationery
+-   About
+
+Right:
+
+-   Search icon
+-   Wishlist icon
+-   Shopping cart icon with item count
+-   Account icon or login button
+
+On mobile:
+
+-   Brand logo.
+-   Search icon.
+-   Cart icon.
+-   Hamburger menu.
+
+The navigation should remain visually consistent across all pages.
+
+Footer
+
+Create a professional footer with:
+
+-   Brand name and short description.
+-   Shop links.
+-   Customer service links.
+-   About links.
+-   Contact information placeholders.
+-   Social media icons.
+-   Newsletter signup.
+-   Copyright.
+
+Use the palette consistently in the footer.
+
+------------------------------------------------------------------------
+
+5. HOMEPAGE
+
+Build the homepage in the following order.
+
+Section 1: Announcement bar
+
+At the top of the page, add a slim announcement bar.
+
+Example content:
+
+“Discover your next favorite book · New stationery arrivals”
+
+Use a subtle pink or purple background.
+
+Make it visually clean and not too tall.
+
+Section 2: Main navbar
+
+Create the responsive navbar described above.
+
+The navbar should have:
+
+-   Logo.
+-   Navigation links.
+-   Search.
+-   Wishlist.
+-   Cart.
+-   Mobile menu.
+
+Add subtle hover states.
+
+Section 3: Hero section
+
+Create a visually striking bookstore hero section.
+
+Layout:
+
+-   Large editorial headline on the left.
+-   Supporting description.
+-   Primary CTA.
+-   Secondary CTA.
+-   Beautiful book and stationery imagery on the right.
+
+Example headline:
+
+“Stories to Read. Little Things to Love.”
+
+Example description:
+
+“Discover books, stationery, and everyday treasures that make your world
+a little more beautiful.”
+
+Buttons:
+
+-   Shop Books
+-   Explore Stationery
+
+Design direction:
+
+-   Soft pink or cream background.
+-   Deep indigo typography.
+-   Elegant serif heading.
+-   Rounded image cards or editorial collage.
+-   Subtle decorative shapes inspired by the provided palette.
+
+The hero should feel like a real bookstore brand campaign.
+
+Do not make it look like a generic SaaS landing page.
+
+Section 4: Featured categories
+
+Create a section with 4 category cards.
+
+Categories:
+
+1.  Books
+2.  Stationery
+3.  Journals & Planners
+4.  Gifts
+
+Each category card should include:
+
+-   Image or visual.
+-   Category name.
+-   Short description.
+-   Shop link or button.
+
+Use varied but coordinated pastel backgrounds.
+
+Cards should be clickable.
+
+Section 5: New arrivals
+
+Create a product grid showcasing new arrivals.
+
+Display 4 to 8 products depending on screen width.
+
+Each product card must include:
+
+-   Product image.
+-   Product category.
+-   Product title.
+-   Price.
+-   Optional old price.
+-   Sale badge if applicable.
+-   Wishlist heart button.
+-   Add to Cart button or quick add interaction.
+
+Example products:
+
+-   The Bell Jar
+-   A Summer of Stars
+-   A beautiful journal
+-   Pastel notebook
+-   Colored gel pens
+-   Weekly planner
+
+These are sample products only. Use fictional/sample catalog data if no
+real inventory is provided.
+
+Add a “View All New Arrivals” button.
+
+Section 6: Shop by mood / editorial banner
+
+Create an editorial promotional section inspired by the aesthetic of the
+reference Instagram page.
+
+Possible content:
+
+“Your next comfort read”
+
+or
+
+“Little stationery things that make studying better”
+
+Use a large image, soft pink background, and elegant typography.
+
+Include a CTA button.
+
+This section should create an emotional connection with the products.
+
+Section 7: Bestsellers
+
+Create another product carousel or grid featuring bestselling products.
+
+Include:
+
+-   Product image.
+-   Title.
+-   Price.
+-   Rating if appropriate.
+-   Wishlist.
+-   Add to Cart.
+
+Use realistic sample data.
+
+Section 8: Stationery highlight
+
+Create a dedicated stationery section with a more playful visual
+direction.
+
+Show products such as:
+
+-   Cute notebooks.
+-   Pastel pens.
+-   Stickers.
+-   Washi tape.
+-   Planners.
+-   Highlighters.
+
+Use pink, mauve, and lavender accents.
+
+Include the heading:
+
+“Make Your Desk a Little Happier”
+
+CTA:
+
+“Shop Stationery”
+
+Section 9: Newsletter signup
+
+Create a beautiful newsletter section.
+
+Example:
+
+“Letters from the bookstore”
+
+“Get new arrivals, reading recommendations, and stationery inspiration
+in your inbox.”
+
+Include:
+
+-   Email input.
+-   Subscribe button.
+-   Validation.
+-   Success message after submission.
+
+Use a soft pink or lavender background.
+
+Section 10: Footer
+
+Add the complete footer described above.
+
+------------------------------------------------------------------------
+
+6. SHOP ALL PAGE
+
+Create a complete e-commerce catalog page.
+
+Layout
+
+Desktop:
+
+-   Page title and description.
+-   Breadcrumb.
+-   Sidebar filters.
+-   Product grid.
+
+Mobile:
+
+-   Page title.
+-   Sort dropdown.
+-   Filter button opening a filter drawer or modal.
+-   Product grid.
+
+Filters
+
+Implement functional filters for:
+
+-   Category.
+-   Product type.
+-   Price range.
+-   Availability.
+-   Rating if applicable.
+
+Sorting
+
+Add sorting options:
+
+-   Featured.
+-   Newest.
+-   Price: Low to High.
+-   Price: High to Low.
+-   Bestselling.
+
+Product grid
+
+Use responsive product cards.
+
+The product grid should adapt to:
+
+-   4 columns on large desktop.
+-   3 columns on medium desktop/tablet.
+-   2 columns on mobile.
+
+Do not create horizontal scrolling on mobile.
+
+------------------------------------------------------------------------
+
+7. BOOKS PAGE
+
+Create a dedicated books catalog page.
+
+Categories:
+
+-   Fiction.
+-   Romance.
+-   Mystery & Thriller.
+-   Young Adult.
+-   Fantasy.
+-   Self-Development.
+-   Literary Fiction.
+
+Include:
+
+-   Page header.
+-   Category navigation.
+-   Filter and sort controls.
+-   Book product grid.
+-   Book cover images.
+-   Author names.
+-   Prices.
+-   Wishlist.
+-   Add to Cart.
+
+Each product should link to its product details page.
+
+Use an elegant editorial layout with cream, pink, and indigo accents.
+
+------------------------------------------------------------------------
+
+8. STATIONERY PAGE
+
+Create a dedicated stationery catalog page.
+
+Categories:
+
+-   Notebooks.
+-   Journals.
+-   Planners.
+-   Pens & Pencils.
+-   Highlighters.
+-   Stickers.
+-   Washi Tape.
+-   Art Supplies.
+-   Desk Accessories.
+
+Include:
+
+-   Attractive product photography.
+-   Category filters.
+-   Price filters.
+-   Sort options.
+-   Product grid.
+-   Add to Cart.
+-   Wishlist.
+
+Make this page slightly more playful than the books page while keeping
+the same brand identity.
+
+------------------------------------------------------------------------
+
+9. PRODUCT DETAILS PAGE
+
+Create a polished product details page.
+
+Layout:
+
+Left:
+
+-   Large product image.
+-   Thumbnail gallery.
+-   Image switching interaction.
+
+Right:
+
+-   Product title.
+-   Category.
+-   Price.
+-   Rating.
+-   Product description.
+-   Available variants if applicable.
+-   Quantity selector.
+-   Add to Cart button.
+-   Add to Wishlist button.
+-   Availability status.
+
+Below:
+
+-   Product description.
+-   Product information.
+-   Reviews section.
+-   Related products.
+
+Functional requirements:
+
+-   Quantity can increase and decrease.
+-   Add to Cart updates the cart.
+-   Wishlist button updates wishlist state.
+-   Product image thumbnails change the main image.
+-   Related products are clickable.
+
+Use sample product data and realistic descriptions.
+
+Reviews may be mock/demo content and must not be presented as authentic
+customer reviews.
+
+------------------------------------------------------------------------
+
+10. CART PAGE
+
+Create a functional demo shopping cart.
+
+Display:
+
+-   Product image.
+-   Product title.
+-   Price.
+-   Quantity selector.
+-   Remove button.
+-   Subtotal.
+-   Estimated shipping.
+-   Total.
+-   Checkout button.
+
+Functional behavior:
+
+-   Add products to cart.
+-   Increase or decrease quantities.
+-   Remove products.
+-   Update totals automatically.
+-   Cart item count updates in navbar.
+-   Empty cart state with a CTA to continue shopping.
+
+For this prototype, checkout should be a simulated demo flow only.
+
+Do not implement real payment processing.
+
+------------------------------------------------------------------------
+
+11. WISHLIST
+
+Create a wishlist page.
+
+Users should be able to:
+
+-   Add products to wishlist.
+-   Remove products.
+-   View wishlist products.
+-   Move wishlist products to cart.
+
+Persist wishlist state locally for the prototype.
+
+------------------------------------------------------------------------
+
+12. SEARCH
+
+Implement a functional search interface.
+
+Users should be able to search for:
+
+-   Book titles.
+-   Authors.
+-   Stationery products.
+-   Categories.
+
+Search results should display matching products.
+
+Include:
+
+-   Search input.
+-   Search results count.
+-   Product grid.
+-   Empty search state.
+-   Clear search option.
+
+Search should be accessible from the navbar on desktop and mobile.
+
+------------------------------------------------------------------------
+
+13. ABOUT US PAGE
+
+Create a warm, editorial About page.
+
+Content structure:
+
+-   Brand introduction.
+-   Story of the bookstore.
+-   Mission and values.
+-   Why customers should shop with us.
+-   Image or visual section.
+-   CTA to shop.
+
+Tone:
+
+Warm, creative, personal, and welcoming.
+
+Use clearly marked placeholder brand content that can easily be edited
+later.
+
+Do not invent a real brand history.
+
+------------------------------------------------------------------------
+
+14. CONTACT PAGE
+
+Create a contact page with:
+
+-   Contact heading.
+-   Short introduction.
+-   Contact form.
+-   Name field.
+-   Email field.
+-   Subject field.
+-   Message field.
+-   Submit button.
+-   Contact information placeholders.
+-   Social media links.
+
+Form requirements:
+
+-   Required field validation.
+-   Email validation.
+-   Success message after submission.
+-   Clear error messages.
+
+Do not connect to a real email service unless explicitly requested.
+
+------------------------------------------------------------------------
+
+15. REUSABLE COMPONENTS
+
+Build the website using reusable components.
+
+Required components:
+
+-   Navbar.
+-   Announcement bar.
+-   Footer.
+-   Hero section.
+-   Category card.
+-   Product card.
+-   Product grid.
+-   Product carousel.
+-   Product details.
+-   Price display.
+-   Wishlist button.
+-   Add to Cart button.
+-   Quantity selector.
+-   Search bar.
+-   Filter sidebar.
+-   Filter drawer for mobile.
+-   Sort dropdown.
+-   Newsletter form.
+-   Contact form.
+-   Modal or drawer components.
+-   Empty state.
+-   Loading state.
+-   Toast notifications.
+
+Use consistent component styles throughout the website.
+
+Do not duplicate large amounts of UI code unnecessarily.
+
+------------------------------------------------------------------------
+
+16. FUNCTIONALITY
+
+This is a functional website prototype, not just a static landing page.
+
+Implement:
+
+Navigation
+
+-   All navbar links work.
+-   All category links work.
+-   Product cards navigate to product details.
+-   Footer links work where applicable.
+-   Mobile menu opens and closes correctly.
+
+Shopping
+
+-   Add to Cart.
+-   Remove from Cart.
+-   Quantity updates.
+-   Cart totals.
+-   Cart count.
+-   Wishlist functionality.
+-   Move wishlist item to cart.
+
+Catalog
+
+-   Search.
+-   Category filtering.
+-   Price filtering.
+-   Sorting.
+-   Product detail navigation.
+
+Forms
+
+-   Newsletter form validation.
+-   Contact form validation.
+-   Success and error states.
+
+Persistence
+
+Use localStorage or an equivalent client-side persistence mechanism for:
+
+-   Cart.
+-   Wishlist.
+
+The cart and wishlist should remain available when the user navigates
+between pages or refreshes the prototype.
+
+Data
+
+Create a structured sample product catalog.
+
+Each product should include:
+
+-   id.
+-   title.
+-   category.
+-   type.
+-   price.
+-   image.
+-   description.
+-   availability.
+-   optional author.
+-   optional rating.
+-   optional variants.
+
+Keep product data separate from UI components so it can easily be
+replaced with real data later.
+
+------------------------------------------------------------------------
+
+17. RESPONSIVE DESIGN
+
+The website must be fully responsive.
+
+Desktop
+
+-   Spacious editorial layouts.
+-   Multi-column product grids.
+-   Full navigation.
+-   Sidebar filters.
+-   Large hero section.
+-   Balanced whitespace.
+
+Tablet
+
+-   Adapt grid columns.
+-   Reduce spacing where necessary.
+-   Keep navigation usable.
+-   Maintain visual hierarchy.
+-   Ensure cards remain readable.
+
+Mobile
+
+-   Mobile-first responsive behavior.
+-   Hamburger menu.
+-   Two-column product grid where appropriate.
+-   Full-width buttons when useful.
+-   Filter drawer instead of sidebar.
+-   Readable typography.
+-   Proper touch target sizes.
+-   No clipped text.
+-   No horizontal page scrolling.
+-   Product images remain attractive.
+-   Cart and wishlist remain easy to access.
+
+Test the design at approximately:
+
+-   1440px desktop.
+-   1024px tablet.
+-   768px tablet.
+-   390px mobile.
+-   320px mobile.
+
+Do not simply shrink the desktop design. Reorganize sections
+appropriately for mobile.
+
+------------------------------------------------------------------------
+
+18. ANIMATIONS / INTERACTIONS
+
+Use subtle, polished interactions.
+
+Include:
+
+-   Smooth hover states on buttons.
+-   Product card hover elevation or image zoom.
+-   Heart animation when adding to wishlist.
+-   Smooth mobile menu transition.
+-   Cart add confirmation toast.
+-   Subtle section entrance animations.
+-   Smooth image transitions.
+-   Button hover color changes.
+-   Focus states for accessibility.
+
+Keep animations elegant and restrained.
+
+Do not use excessive bouncing, spinning, or distracting animations.
+
+Respect reduced-motion preferences where possible.
+
+------------------------------------------------------------------------
+
+19. TECHNICAL REQUIREMENTS
+
+Use a modern, maintainable frontend stack suitable for Replit.
+
+Preferred stack:
+
+-   React.
+-   TypeScript if appropriate.
+-   Vite.
+-   Tailwind CSS or a clean CSS architecture.
+-   React Router for navigation if needed.
+-   Reusable components.
+-   Structured product data.
+-   Responsive CSS.
+-   Local state management suitable for the prototype.
+
+Use Lucide React or another suitable icon library for interface icons.
+
+Avoid unnecessary dependencies.
+
+Code quality
+
+-   Use clean, readable code.
+-   Use reusable components.
+-   Keep product data separate from UI.
+-   Keep styling consistent.
+-   Avoid giant monolithic components.
+-   Avoid duplicated code.
+-   Use semantic HTML.
+-   Use accessible buttons, labels, and form fields.
+-   Use proper alt text for images.
+-   Use keyboard-accessible interactions.
+-   Ensure the project runs correctly in Replit.
+-   Preserve the ability to connect the project to GitHub and maintain
+    the source code.
+
+Prototype scope
+
+This is only a frontend prototype.
+
+Do not build:
+
+-   Real payment processing.
+-   Real authentication.
+-   A production database.
+-   A production backend.
+-   Admin dashboards.
+-   Complex deployment infrastructure.
+-   Real email integrations.
+-   Unnecessary APIs.
+
+Use mock data and simulated interactions.
+
+Structure the code so a backend can be added later if needed.
+
+------------------------------------------------------------------------
+
+20. IMPORTANT CONSTRAINTS
+
+1.  Build an original bookstore and stationery website.
+2.  Use the provided pink, mauve, purple, and indigo palette as the main
+    visual direction.
+3.  Do not clone Instagram.
+4.  Do not copy another website’s exact layout, branding, or content.
+5.  Do not use generic SaaS dashboard styling.
+6.  Do not use random unrelated stock images.
+7.  Do not make the design overly childish.
+8.  Do not use excessive gradients or shadows.
+9.  Do not make every section the same color.
+10. Do not sacrifice readability for aesthetics.
+11. Do not create non-functional buttons when functionality is expected.
+12. Do not add real payments or external services.
+13. Do not invent a real brand history or fake customer reviews
+    presented as authentic.
+14. Use clearly structured sample data.
+15. Make the design responsive from the beginning.
+16. Keep the code maintainable and easy to edit.
+17. Make sure the project runs correctly before finishing.
+18. Keep the scope appropriate for a prototype.
+19. Do not over-engineer the application.
+20. Do not add features that were not requested unless they clearly
+    improve the prototype.
+
+------------------------------------------------------------------------
+
+21. FINAL QUALITY CHECK
+
+Before finishing, verify:
+
+-   The website has a cohesive pink and purple brand identity.
+-   The homepage looks polished and visually balanced.
+-   The bookstore and stationery categories are clear.
+-   Product cards are attractive and consistent.
+-   Search works.
+-   Filters work.
+-   Sorting works.
+-   Cart works.
+-   Wishlist works.
+-   Product details work.
+-   Forms validate correctly.
+-   Navigation works.
+-   Mobile layout works.
+-   No major overflow or broken layouts.
+-   No broken images.
+-   No console errors.
+-   All important buttons have appropriate demo behavior.
+-   The code remains easy to edit and maintain.
+
+Start by building the complete frontend prototype with:
+
+-   Homepage.
+-   Responsive navigation.
+-   Shop All page.
+-   Books page.
+-   Stationery page.
+-   Product details page.
+-   Cart.
+-   Wishlist.
+-   Search.
+-   About page.
+-   Contact page.
+
+Prioritize visual quality, usability, and a cohesive bookstore brand
+experience over unnecessary complexity.
+
+Remember: THIS IS ONLY A PROTOTYPE. Use mock data and simulated
+functionality, and keep the implementation simple, clean, and
+maintainable.
