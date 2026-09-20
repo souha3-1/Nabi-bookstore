@@ -6,14 +6,14 @@ import { supabase } from '@/lib/supabase';
 export type ProductKind = 'book' | 'stationery';
 export type Product = {
   id: string; kind: ProductKind; title: string; author?: string; type?: string;
-  price: number; description: string; rating: number; availability: string; image: string;
+  price: number; description: string; availability: string; image: string;
   colors: string[]; badge?: string; details: string; featured: boolean; stock: number;
 };
 
 // One row of public.products, joined with its category slug (see supabase/schema.sql).
 type ProductRow = {
   slug: string; title: string; author: string | null; product_type: string | null;
-  description: string; details: string | null; price: number; rating: number | null;
+  description: string; details: string | null; price: number;
   stock_quantity: number; low_stock_threshold: number; image_url: string | null;
   variants: string[] | null; badge: string | null; is_featured: boolean;
   categories: { slug: string } | null;
@@ -35,7 +35,6 @@ function toProduct(row: ProductRow): Product | null {
     type: row.product_type ?? undefined,
     price: row.price,
     description: row.description,
-    rating: Number(row.rating ?? 0),
     availability: availabilityLabel(row.stock_quantity, row.low_stock_threshold),
     image: row.image_url ?? '',
     colors: row.variants ?? [],
