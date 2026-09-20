@@ -7,7 +7,7 @@ export type ProductKind = 'book' | 'stationery';
 export type Product = {
   id: string; kind: ProductKind; title: string; author?: string; type?: string;
   price: number; description: string; rating: number; availability: string; image: string;
-  colors: string[]; badge?: string; details: string; featured: boolean;
+  colors: string[]; badge?: string; details: string; featured: boolean; stock: number;
 };
 
 // One row of public.products, joined with its category slug (see supabase/schema.sql).
@@ -42,6 +42,7 @@ function toProduct(row: ProductRow): Product | null {
     badge: row.badge ?? undefined,
     details: row.details ?? '',
     featured: row.is_featured,
+    stock: row.stock_quantity,
   };
 }
 

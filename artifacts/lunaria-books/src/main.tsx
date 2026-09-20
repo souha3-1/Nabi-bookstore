@@ -7,7 +7,7 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import './index.css';
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 5 * 60 * 1000, retry: 1, refetchOnWindowFocus: false } },
+  defaultOptions: { queries: { staleTime: 60 * 1000, retry: 1, refetchOnWindowFocus: false } },
 });
 
 createRoot(document.getElementById('root')!, {
