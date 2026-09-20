@@ -8,8 +8,8 @@ import {
 import NotFound from '@/pages/not-found';
 import { type Product, type ProductKind, useCatalog } from '@/lib/catalog';
 import { searchProducts } from '@/lib/search';
+import { type CartItem, CART_KEY, FREE_SHIPPING_FROM, fitCartToStock, parseSavedCart, readSavedCart, saveToStorage, shippingFor } from '@/lib/cart';
 
-type CartItem = { id: string; quantity: number; variant?: string };
 
 
 const money = (value: number) => `${new Intl.NumberFormat('fr-DZ', { maximumFractionDigits: 0 }).format(value)} DA`;
@@ -28,32 +28,21 @@ const useStore = () => {
   return value;
 };
 
-// Keeps only products that still exist and never more of a product than is in stock (its stock is shared by all variants).
-function fitCartToStock(cart: CartItem[], find: (id: string) => Product | undefined): CartItem[] {
-  const left = new Map<string, number>();
-  const fitted: CartItem[] = [];
-  for (const item of cart) {
-    const product = find(item.id);
-    if (!product) continue;
-    const room = left.get(item.id) ?? product.stock;
-    const quantity = Math.min(item.quantity, room);
-    left.set(item.id, room - quantity);
-    if (quantity > 0) fitted.push(quantity === item.quantity ? item : { ...item, quantity });
-  }
-  return fitted.length === cart.length && fitted.every((line, index) => line === cart[index]) ? cart : fitted;
-}
-
 function StoreProvider({ children }: { children: ReactNode }) {
   const { findProduct, isReady } = useCatalog();
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    try { const saved = JSON.parse(localStorage.getItem('nabi-books-cart') || '[]'); return Array.isArray(saved) ? saved : []; } catch { return []; }
-  });
+  const [cart, setCart] = useState<CartItem[]>(readSavedCart);
   const [wishlist, setWishlist] = useState<string[]>(() => {
     try { const saved = JSON.parse(localStorage.getItem('nabi-books-wishlist') || '[]'); return Array.isArray(saved) ? saved : []; } catch { return []; }
   });
   const [toast, setToast] = useState('');
-  useEffect(() => localStorage.setItem('nabi-books-cart', JSON.stringify(cart)), [cart]);
-  useEffect(() => localStorage.setItem('nabi-books-wishlist', JSON.stringify(wishlist)), [wishlist]);
+  useEffect(() => saveToStorage(CART_KEY, cart), [cart]);
+  useEffect(() => saveToStorage('nabi-books-wishlist', wishlist), [wishlist]);
+  // If the bag changes in another tab, this tab follows it.
+  useEffect(() => {
+    const follow = (event: StorageEvent) => { if (event.key === CART_KEY || event.key === null) setCart(parseSavedCart(event.key === null ? null : event.newValue)); };
+    window.addEventListener('storage', follow);
+    return () => window.removeEventListener('storage', follow);
+  }, []);
   // Only after a successful load: drop saved ids that are no longer in the catalog (never while loading or after an error).
   useEffect(() => {
     if (!isReady) return;
@@ -232,11 +221,11 @@ function CatalogNotice({ state }: { state: 'loading' | 'error' }) {
 function CartPage() {
   const { cart, cartTotal, updateQuantity, removeFromCart } = useStore();
   const { findProduct, isLoading, isError } = useCatalog();
-  const shipping = cartTotal >= 6000 || cartTotal === 0 ? 0 : 600;
+  const shipping = shippingFor(cartTotal);
   if (cart.length === 0) return <Shell><EmptyState title="Your bag is waiting" message="A good browsing session should end with at least one maybe. Take another turn around the shelves." href="/shop" label="Keep browsing" /></Shell>;
   if (isLoading) return <Shell><CatalogNotice state="loading" /></Shell>;
   if (isError) return <Shell><CatalogNotice state="error" /></Shell>;
-  return <Shell><div className="container-lunaria py-14 md:py-20"><p className="text-xs font-bold uppercase tracking-[.2em] text-[#B274A2]">Your little stack</p><h1 className="mt-3 font-display text-5xl text-[#30263B] md:text-6xl">Your bag</h1><div className="mt-10 grid gap-10 lg:grid-cols-[1fr_360px]"><div className="divide-y divide-[#eadbd9] border-y border-[#eadbd9]">{cart.map((item) => { const product = findProduct(item.id); if (!product) return null; return <div key={`${item.id}-${item.variant}`} className="flex gap-4 py-6 sm:gap-6" data-testid={`row-cart-${item.id}`}><div className="w-24 shrink-0 sm:w-32"><ProductImage product={product} /></div><div className="flex min-w-0 flex-1 flex-col justify-between gap-4 sm:flex-row"><div><Link href={`/product/${product.id}`} className="font-display text-xl text-[#30263B] hover:text-[#48458F]" data-testid={`link-cart-product-${product.id}`}>{product.title}</Link><p className="mt-1 text-sm text-[#746875]">{product.author || product.type}</p><button onClick={() => removeFromCart(item.id, item.variant)} className="mt-4 flex items-center gap-1 text-xs font-bold uppercase tracking-[.1em] text-[#B274A2] hover:text-[#48458F]" data-testid={`button-remove-${product.id}`}><Trash2 size={13} />Remove</button></div><div className="flex items-center justify-between gap-8 sm:flex-col sm:items-end"><p className="font-semibold text-[#48458F]">{money(product.price * item.quantity)}</p><div className="flex items-center border border-[#d9c5cb]"><button onClick={() => updateQuantity(item.id, item.quantity - 1, item.variant)} className="grid h-8 w-8 place-items-center text-[#48458F]" aria-label="Decrease quantity" data-testid={`button-cart-minus-${product.id}`}><Minus size={14} /></button><span className="w-8 text-center text-sm">{item.quantity}</span><button onClick={() => updateQuantity(item.id, item.quantity + 1, item.variant)} disabled={cart.filter((line) => line.id === item.id).reduce((sum, line) => sum + line.quantity, 0) >= product.stock} className="grid h-8 w-8 place-items-center text-[#48458F] disabled:cursor-not-allowed disabled:opacity-40" aria-label="Increase quantity" data-testid={`button-cart-plus-${product.id}`}><Plus size={14} /></button></div></div></div></div>; })}</div><aside className="h-fit bg-[#FFF1EC] p-6 md:p-7"><h2 className="font-display text-2xl text-[#30263B]">A few numbers</h2><div className="mt-6 space-y-4 text-sm text-[#746875]"><div className="flex justify-between"><span>Subtotal</span><span className="font-semibold text-[#30263B]">{money(cartTotal)}</span></div><div className="flex justify-between"><span>Shipping</span><span className="font-semibold text-[#30263B]">{shipping ? money(shipping) : 'Free'}</span></div><div className="border-t border-[#e2cfd0] pt-4 text-base font-bold text-[#30263B] flex justify-between"><span>Total</span><span>{money(cartTotal + shipping)}</span></div></div><button onClick={() => alert('Checkout is simulated for this prototype.')} className="mt-7 flex w-full items-center justify-center gap-2 bg-[#48458F] py-3.5 text-sm font-bold text-white hover:bg-[#30263B]" data-testid="button-checkout">Continue to checkout <ArrowRight size={16} /></button><p className="mt-4 text-center text-xs leading-5 text-[#746875]">Free shipping on orders over 6,000 DA. No account needed.</p></aside></div></div></Shell>;
+  return <Shell><div className="container-lunaria py-14 md:py-20"><p className="text-xs font-bold uppercase tracking-[.2em] text-[#B274A2]">Your little stack</p><h1 className="mt-3 font-display text-5xl text-[#30263B] md:text-6xl">Your bag</h1><div className="mt-10 grid gap-10 lg:grid-cols-[1fr_360px]"><div className="divide-y divide-[#eadbd9] border-y border-[#eadbd9]">{cart.map((item) => { const product = findProduct(item.id); if (!product) return null; return <div key={`${item.id}-${item.variant}`} className="flex gap-4 py-6 sm:gap-6" data-testid={`row-cart-${item.id}`}><div className="w-24 shrink-0 sm:w-32"><ProductImage product={product} /></div><div className="flex min-w-0 flex-1 flex-col justify-between gap-4 sm:flex-row"><div><Link href={`/product/${product.id}`} className="font-display text-xl text-[#30263B] hover:text-[#48458F]" data-testid={`link-cart-product-${product.id}`}>{product.title}</Link><p className="mt-1 text-sm text-[#746875]">{product.author || product.type}</p><button onClick={() => removeFromCart(item.id, item.variant)} className="mt-4 flex items-center gap-1 text-xs font-bold uppercase tracking-[.1em] text-[#B274A2] hover:text-[#48458F]" data-testid={`button-remove-${product.id}`}><Trash2 size={13} />Remove</button></div><div className="flex items-center justify-between gap-8 sm:flex-col sm:items-end"><p className="font-semibold text-[#48458F]">{money(product.price * item.quantity)}</p><div className="flex items-center border border-[#d9c5cb]"><button onClick={() => updateQuantity(item.id, item.quantity - 1, item.variant)} className="grid h-8 w-8 place-items-center text-[#48458F]" aria-label="Decrease quantity" data-testid={`button-cart-minus-${product.id}`}><Minus size={14} /></button><span className="w-8 text-center text-sm">{item.quantity}</span><button onClick={() => updateQuantity(item.id, item.quantity + 1, item.variant)} disabled={cart.filter((line) => line.id === item.id).reduce((sum, line) => sum + line.quantity, 0) >= product.stock} className="grid h-8 w-8 place-items-center text-[#48458F] disabled:cursor-not-allowed disabled:opacity-40" aria-label="Increase quantity" data-testid={`button-cart-plus-${product.id}`}><Plus size={14} /></button></div></div></div></div>; })}</div><aside className="h-fit bg-[#FFF1EC] p-6 md:p-7"><h2 className="font-display text-2xl text-[#30263B]">A few numbers</h2><div className="mt-6 space-y-4 text-sm text-[#746875]"><div className="flex justify-between"><span>Subtotal</span><span className="font-semibold text-[#30263B]">{money(cartTotal)}</span></div><div className="flex justify-between"><span>Shipping</span><span className="font-semibold text-[#30263B]">{shipping ? money(shipping) : 'Free'}</span></div><div className="border-t border-[#e2cfd0] pt-4 text-base font-bold text-[#30263B] flex justify-between"><span>Total</span><span>{money(cartTotal + shipping)}</span></div></div><button onClick={() => alert('Checkout is simulated for this prototype.')} className="mt-7 flex w-full items-center justify-center gap-2 bg-[#48458F] py-3.5 text-sm font-bold text-white hover:bg-[#30263B]" data-testid="button-checkout">Continue to checkout <ArrowRight size={16} /></button><p className="mt-4 text-center text-xs leading-5 text-[#746875]">{`Free shipping on orders over ${FREE_SHIPPING_FROM.toLocaleString('en-US')} DA. No account needed.`}</p></aside></div></div></Shell>;
 }
 
 function WishlistPage() {
