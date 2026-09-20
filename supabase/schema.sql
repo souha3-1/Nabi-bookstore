@@ -35,7 +35,6 @@ create table public.products (
   description          text not null default '',
   details              text,                  -- e.g. 'Paperback · Poetry · rupi kaur'
   price                integer not null check (price >= 0),          -- whole DZD (DA)
-  rating               numeric(2,1) check (rating >= 0 and rating <= 5),
   stock_quantity       integer not null default 0 check (stock_quantity >= 0),
   low_stock_threshold  integer not null default 5 check (low_stock_threshold >= 0),
   image_url            text,
