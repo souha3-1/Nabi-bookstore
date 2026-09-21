@@ -10,7 +10,8 @@ import NotFound from '@/pages/not-found';
 import { type Product, type ProductKind, useCatalog } from '@/lib/catalog';
 import { searchProducts } from '@/lib/search';
 import { Highlight } from '@/components/highlight';
-import { type CheckoutErrors, type CheckoutValues, type StockProblem, EMPTY_CHECKOUT, newRequestId, placeOrder, readLastOrder, saveLastOrder, validateCheckout } from '@/lib/checkout';
+import { type SelectOption, SearchSelect } from '@/components/search-select';
+import { type CheckoutErrors, type CheckoutValues, type StockProblem, DELIVERY_LABELS, EMPTY_CHECKOUT, newRequestId, placeOrder, readLastOrder, saveLastOrder, validateCheckout } from '@/lib/checkout';
 import { WISHLIST_KEY, parseSavedWishlist, readSavedWishlist } from '@/lib/wishlist';
 import { type CartItem, CART_KEY, FREE_SHIPPING_FROM, fitCartToStock, parseSavedCart, readSavedCart, saveToStorage, shippingFor } from '@/lib/cart';
 
@@ -266,8 +267,8 @@ function Contact() {
 }
 
 type CheckoutFieldProps = {
-  name: keyof CheckoutValues; label: string; value: string; onChange: (value: string) => void; error?: string;
-  optional?: boolean; multiline?: boolean; type?: string; autoComplete?: string; inputMode?: 'text' | 'tel' | 'email'; placeholder?: string;
+  name: 'name' | 'phone' | 'address' | 'notes'; label: string; value: string; onChange: (value: string) => void; error?: string;
+  optional?: boolean; multiline?: boolean; type?: string; autoComplete?: string; inputMode?: 'text' | 'tel'; placeholder?: string;
 };
 
 function CheckoutField({ name, label, value, onChange, error, optional, multiline, type = 'text', autoComplete, inputMode, placeholder }: CheckoutFieldProps) {
@@ -297,13 +298,19 @@ function CheckoutPage() {
   const [notice, setNotice] = useState('');
   const [problems, setProblems] = useState<StockProblem[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [places, setPlaces] = useState<typeof import('@/data/algeria') | null>(null);
   const requestId = useRef(newRequestId());
   const done = useRef(false);
   useEffect(() => { window.scrollTo(0, 0); }, []);
   useEffect(() => { if (notice) document.querySelector('[data-testid=checkout-notice]')?.scrollIntoView({ block: 'center' }); }, [notice, problems]);
+  // the list of wilayas and communes is large, so it is only loaded when the checkout opens
+  useEffect(() => { let alive = true; import('@/data/algeria').then((module) => { if (alive) setPlaces(module); }); return () => { alive = false; }; }, []);
+  const wilayaOptions = useMemo<SelectOption[]>(() => (places?.WILAYAS ?? []).map((wilaya) => ({ value: String(wilaya.code), label: `${String(wilaya.code).padStart(2, '0')} · ${wilaya.fr}`, hint: wilaya.ar, search: `${wilaya.code} ${wilaya.fr} ${wilaya.ar}` })), [places]);
+  const communeOptions = useMemo<SelectOption[]>(() => (places && values.wilayaCode ? places.COMMUNES[values.wilayaCode] ?? [] : []).map(([fr, ar]) => ({ value: fr, label: fr, hint: ar, search: `${fr} ${ar}` })), [places, values.wilayaCode]);
+  const wilayaName = places?.WILAYAS.find((wilaya) => wilaya.code === values.wilayaCode)?.fr ?? '';
   const shipping = shippingFor(cartTotal);
   const total = cartTotal + shipping;
-  const field = (name: keyof CheckoutValues) => ({ name, value: values[name], error: errors[name], onChange: (value: string) => setValues((current) => ({ ...current, [name]: value })) });
+  const text = (name: 'name' | 'phone' | 'address' | 'notes') => ({ name, value: values[name], error: errors[name as keyof CheckoutErrors], onChange: (value: string) => setValues((current) => ({ ...current, [name]: value })) });
   if (done.current) return null;
   if (cart.length === 0) return <Shell><EmptyState title="Your bag is waiting" message="A good browsing session should end with at least one maybe. Take another turn around the shelves." href="/shop" label="Keep browsing" /></Shell>;
   if (isLoading) return <Shell><CatalogNotice state="loading" /></Shell>;
@@ -319,7 +326,7 @@ function CheckoutPage() {
     const firstWrong = Object.keys(found)[0];
     if (firstWrong) { document.getElementById(`checkout-${firstWrong}`)?.focus(); return; }
     setSubmitting(true);
-    const result = await placeOrder(values, cart, total, requestId.current);
+    const result = await placeOrder(values, wilayaName, cart, total, requestId.current);
     setSubmitting(false);
     if (result.status === 'placed') {
       done.current = true;
@@ -354,13 +361,21 @@ function CheckoutPage() {
       <form onSubmit={submit} noValidate className="space-y-6 bg-[#FFF1EC] p-6 md:p-10" data-testid="form-checkout">
         {(notice || problems.length > 0) && <div role="alert" className="flex gap-3 border border-[#e6b8b8] bg-[#FDECEC] p-4 text-sm leading-6 text-[#7A2E2E]" data-testid="checkout-notice"><CircleAlert size={18} className="mt-1 shrink-0" /><div><p>{notice}</p>{problems.length > 0 && <ul className="mt-2 list-disc pl-5">{problems.map((problem) => <li key={problem.slug}>{problem.title}: {problem.available > 0 ? `only ${problem.available} left` : 'no longer available'}</li>)}</ul>}</div></div>}
         <div className="grid gap-6 sm:grid-cols-2">
-          <CheckoutField label="Full name" autoComplete="name" placeholder="Your name" {...field('name')} />
-          <CheckoutField label="Phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="0555 12 34 56" {...field('phone')} />
+          <CheckoutField label="Full name" autoComplete="name" placeholder="Your name" {...text('name')} />
+          <CheckoutField label="Phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="0555 12 34 56" {...text('phone')} />
         </div>
-        <CheckoutField label="Email" optional type="email" inputMode="email" autoComplete="email" placeholder="you@example.com" {...field('email')} />
-        <CheckoutField label="Delivery address" autoComplete="street-address" placeholder="Street, number, district" {...field('address')} />
-        <CheckoutField label="City / wilaya" autoComplete="address-level1" placeholder="Algiers" {...field('wilaya')} />
-        <CheckoutField label="Notes for delivery" optional multiline placeholder="Anything we should know?" {...field('notes')} />
+        <div className="grid gap-6 sm:grid-cols-2">
+          <SearchSelect id="checkout-wilaya" testId="input-checkout-wilaya" label="Wilaya" options={wilayaOptions} value={values.wilayaCode ? String(values.wilayaCode) : ''} error={errors.wilaya} disabled={!places} placeholder={places ? 'Search or choose your wilaya' : 'Loading the list…'} onChange={(value) => setValues((current) => ({ ...current, wilayaCode: Number(value), commune: '' }))} />
+          <SearchSelect id="checkout-commune" testId="input-checkout-commune" label="City / Commune" options={communeOptions} value={values.commune} error={errors.commune} disabled={!places || !values.wilayaCode} placeholder={values.wilayaCode ? 'Search or choose your commune' : 'Choose your wilaya first'} onChange={(value) => setValues((current) => ({ ...current, commune: value }))} />
+        </div>
+        <fieldset>
+          <legend className="text-xs font-bold uppercase tracking-[.1em] text-[#746875]">Delivery method</legend>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">{([{ value: 'home', title: 'Home delivery', text: 'We bring it to your door.' }, { value: 'stop_desk', title: 'Stop desk', text: 'You pick it up at a delivery office.' }] as const).map((option) => <label key={option.value} className={`flex cursor-pointer gap-3 border p-4 ${values.deliveryMethod === option.value ? 'border-[#48458F] bg-white' : 'border-[#d9c5cb]'}`}><input type="radio" name="deliveryMethod" value={option.value} checked={values.deliveryMethod === option.value} onChange={() => setValues((current) => ({ ...current, deliveryMethod: option.value }))} className="mt-1 accent-[#48458F]" data-testid={`radio-delivery-${option.value}`} /><span><span className="block text-sm font-bold text-[#30263B]">{option.title}</span><span className="mt-1 block text-xs leading-5 text-[#746875]">{option.text}</span></span></label>)}</div>
+        </fieldset>
+        {values.deliveryMethod === 'home'
+          ? <CheckoutField label="Delivery address" autoComplete="street-address" placeholder="Street, number, district" {...text('address')} />
+          : <p className="text-sm leading-6 text-[#746875]" data-testid="text-stop-desk-info">Your order will wait for you at a delivery office in {values.commune ? `${values.commune}, ${wilayaName}` : 'your commune'}. We will tell you which one.</p>}
+        <CheckoutField label="Notes for delivery" optional multiline placeholder="Anything we should know?" {...text('notes')} />
         <button type="submit" disabled={submitting} className="flex w-full items-center justify-center gap-2 bg-[#48458F] px-7 py-3.5 text-sm font-bold text-white hover:bg-[#30263B] disabled:cursor-not-allowed disabled:opacity-60" data-testid="button-place-order">{submitting ? 'Placing your order…' : 'Place order'} <Check size={16} /></button>
       </form>
       <aside className="h-fit bg-[#FFF1EC] p-6 md:p-7">
@@ -389,6 +404,7 @@ function OrderConfirmedPage() {
       <h1 className="mt-3 font-display text-5xl text-[#30263B] md:text-6xl" data-testid="text-order-thanks">{`Thank you${name ? `, ${name}` : ''}.`}</h1>
       <p className="mt-4 text-sm leading-7 text-[#746875]">Your order is in. We will get in touch on the phone number you gave us to arrange delivery, and you pay in cash when it arrives.</p>
       <div className="mt-10 bg-[#FFF1EC] p-6 md:p-8">
+        <p className="mb-6 text-sm font-semibold text-[#30263B]" data-testid="text-order-delivery">{DELIVERY_LABELS[order.delivery_method]} · {order.commune}, {order.wilaya}</p>
         <ul className="space-y-4 text-sm text-[#746875]">{order.items.map((line, index) => <li key={index} className="flex justify-between gap-4"><span>{line.title}{line.variant ? ` · ${line.variant}` : ''} × {line.quantity}</span><span className="whitespace-nowrap font-semibold text-[#30263B]">{money(line.line_total)}</span></li>)}</ul>
         <div className="mt-6 space-y-4 border-t border-[#e2cfd0] pt-6 text-sm text-[#746875]">
           <div className="flex justify-between"><span>Subtotal</span><span className="font-semibold text-[#30263B]">{money(order.subtotal)}</span></div>
