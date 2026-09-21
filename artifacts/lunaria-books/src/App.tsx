@@ -9,6 +9,7 @@ import NotFound from '@/pages/not-found';
 import { type Product, type ProductKind, useCatalog } from '@/lib/catalog';
 import { searchProducts } from '@/lib/search';
 import { Highlight } from '@/components/highlight';
+import { WISHLIST_KEY, parseSavedWishlist, readSavedWishlist } from '@/lib/wishlist';
 import { type CartItem, CART_KEY, FREE_SHIPPING_FROM, fitCartToStock, parseSavedCart, readSavedCart, saveToStorage, shippingFor } from '@/lib/cart';
 
 
@@ -32,15 +33,16 @@ const useStore = () => {
 function StoreProvider({ children }: { children: ReactNode }) {
   const { findProduct, isReady } = useCatalog();
   const [cart, setCart] = useState<CartItem[]>(readSavedCart);
-  const [wishlist, setWishlist] = useState<string[]>(() => {
-    try { const saved = JSON.parse(localStorage.getItem('nabi-books-wishlist') || '[]'); return Array.isArray(saved) ? saved : []; } catch { return []; }
-  });
+  const [wishlist, setWishlist] = useState<string[]>(readSavedWishlist);
   const [toast, setToast] = useState('');
   useEffect(() => saveToStorage(CART_KEY, cart), [cart]);
-  useEffect(() => saveToStorage('nabi-books-wishlist', wishlist), [wishlist]);
-  // If the bag changes in another tab, this tab follows it.
+  useEffect(() => saveToStorage(WISHLIST_KEY, wishlist), [wishlist]);
+  // If the bag or the wishlist changes in another tab, this tab follows it.
   useEffect(() => {
-    const follow = (event: StorageEvent) => { if (event.key === CART_KEY || event.key === null) setCart(parseSavedCart(event.key === null ? null : event.newValue)); };
+    const follow = (event: StorageEvent) => {
+      if (event.key === CART_KEY || event.key === null) setCart(parseSavedCart(event.key === null ? null : event.newValue));
+      if (event.key === WISHLIST_KEY || event.key === null) setWishlist(parseSavedWishlist(event.key === null ? null : event.newValue));
+    };
     window.addEventListener('storage', follow);
     return () => window.removeEventListener('storage', follow);
   }, []);
