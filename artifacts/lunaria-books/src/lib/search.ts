@@ -1,7 +1,7 @@
 import type { Product } from '@/lib/catalog';
 
 // Lower-cases and strips accents so "ecole" finds "École" (Latin accents and Arabic vowel marks are ignored).
-const normalize = (text: string) =>
+export const normalize = (text: string) =>
   text.normalize('NFD').replace(/[\u0300-\u036f\u064b-\u065f\u0640]/g, '').toLowerCase();
 
 // Every word the visitor typed must appear in the title, author or type (any order, any case).
