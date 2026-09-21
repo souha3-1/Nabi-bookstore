@@ -1,4 +1,5 @@
-import { type FormEvent, type ReactNode, createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { type ChangeEvent, type FormEvent, type ReactNode, createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Link, Route, Switch, useLocation, useParams, useSearch } from 'wouter';
 import {
   ArrowLeft, ArrowRight, BookOpen, Check, ChevronDown, CircleAlert, Clock3, Heart,
@@ -9,6 +10,7 @@ import NotFound from '@/pages/not-found';
 import { type Product, type ProductKind, useCatalog } from '@/lib/catalog';
 import { searchProducts } from '@/lib/search';
 import { Highlight } from '@/components/highlight';
+import { type CheckoutErrors, type CheckoutValues, type StockProblem, EMPTY_CHECKOUT, newRequestId, placeOrder, readLastOrder, saveLastOrder, validateCheckout } from '@/lib/checkout';
 import { WISHLIST_KEY, parseSavedWishlist, readSavedWishlist } from '@/lib/wishlist';
 import { type CartItem, CART_KEY, FREE_SHIPPING_FROM, fitCartToStock, parseSavedCart, readSavedCart, saveToStorage, shippingFor } from '@/lib/cart';
 
@@ -228,7 +230,7 @@ function CartPage() {
   if (cart.length === 0) return <Shell><EmptyState title="Your bag is waiting" message="A good browsing session should end with at least one maybe. Take another turn around the shelves." href="/shop" label="Keep browsing" /></Shell>;
   if (isLoading) return <Shell><CatalogNotice state="loading" /></Shell>;
   if (isError) return <Shell><CatalogNotice state="error" /></Shell>;
-  return <Shell><div className="container-lunaria py-14 md:py-20"><p className="text-xs font-bold uppercase tracking-[.2em] text-[#B274A2]">Your little stack</p><h1 className="mt-3 font-display text-5xl text-[#30263B] md:text-6xl">Your bag</h1><div className="mt-10 grid gap-10 lg:grid-cols-[1fr_360px]"><div className="divide-y divide-[#eadbd9] border-y border-[#eadbd9]">{cart.map((item) => { const product = findProduct(item.id); if (!product) return null; return <div key={`${item.id}-${item.variant}`} className="flex gap-4 py-6 sm:gap-6" data-testid={`row-cart-${item.id}`}><div className="w-24 shrink-0 sm:w-32"><ProductImage product={product} /></div><div className="flex min-w-0 flex-1 flex-col justify-between gap-4 sm:flex-row"><div><Link href={`/product/${product.id}`} className="font-display text-xl text-[#30263B] hover:text-[#48458F]" data-testid={`link-cart-product-${product.id}`}>{product.title}</Link><p className="mt-1 text-sm text-[#746875]">{product.author || product.type}</p><button onClick={() => removeFromCart(item.id, item.variant)} className="mt-4 flex items-center gap-1 text-xs font-bold uppercase tracking-[.1em] text-[#B274A2] hover:text-[#48458F]" data-testid={`button-remove-${product.id}`}><Trash2 size={13} />Remove</button></div><div className="flex items-center justify-between gap-8 sm:flex-col sm:items-end"><p className="font-semibold text-[#48458F]">{money(product.price * item.quantity)}</p><div className="flex items-center border border-[#d9c5cb]"><button onClick={() => updateQuantity(item.id, item.quantity - 1, item.variant)} className="grid h-8 w-8 place-items-center text-[#48458F]" aria-label="Decrease quantity" data-testid={`button-cart-minus-${product.id}`}><Minus size={14} /></button><span className="w-8 text-center text-sm">{item.quantity}</span><button onClick={() => updateQuantity(item.id, item.quantity + 1, item.variant)} disabled={cart.filter((line) => line.id === item.id).reduce((sum, line) => sum + line.quantity, 0) >= product.stock} className="grid h-8 w-8 place-items-center text-[#48458F] disabled:cursor-not-allowed disabled:opacity-40" aria-label="Increase quantity" data-testid={`button-cart-plus-${product.id}`}><Plus size={14} /></button></div></div></div></div>; })}</div><aside className="h-fit bg-[#FFF1EC] p-6 md:p-7"><h2 className="font-display text-2xl text-[#30263B]">A few numbers</h2><div className="mt-6 space-y-4 text-sm text-[#746875]"><div className="flex justify-between"><span>Subtotal</span><span className="font-semibold text-[#30263B]">{money(cartTotal)}</span></div><div className="flex justify-between"><span>Shipping</span><span className="font-semibold text-[#30263B]">{shipping ? money(shipping) : 'Free'}</span></div><div className="border-t border-[#e2cfd0] pt-4 text-base font-bold text-[#30263B] flex justify-between"><span>Total</span><span>{money(cartTotal + shipping)}</span></div></div><button onClick={() => alert('Checkout is simulated for this prototype.')} className="mt-7 flex w-full items-center justify-center gap-2 bg-[#48458F] py-3.5 text-sm font-bold text-white hover:bg-[#30263B]" data-testid="button-checkout">Continue to checkout <ArrowRight size={16} /></button><p className="mt-4 text-center text-xs leading-5 text-[#746875]">{`Free shipping on orders over ${FREE_SHIPPING_FROM.toLocaleString('en-US')} DA. No account needed.`}</p></aside></div></div></Shell>;
+  return <Shell><div className="container-lunaria py-14 md:py-20"><p className="text-xs font-bold uppercase tracking-[.2em] text-[#B274A2]">Your little stack</p><h1 className="mt-3 font-display text-5xl text-[#30263B] md:text-6xl">Your bag</h1><div className="mt-10 grid gap-10 lg:grid-cols-[1fr_360px]"><div className="divide-y divide-[#eadbd9] border-y border-[#eadbd9]">{cart.map((item) => { const product = findProduct(item.id); if (!product) return null; return <div key={`${item.id}-${item.variant}`} className="flex gap-4 py-6 sm:gap-6" data-testid={`row-cart-${item.id}`}><div className="w-24 shrink-0 sm:w-32"><ProductImage product={product} /></div><div className="flex min-w-0 flex-1 flex-col justify-between gap-4 sm:flex-row"><div><Link href={`/product/${product.id}`} className="font-display text-xl text-[#30263B] hover:text-[#48458F]" data-testid={`link-cart-product-${product.id}`}>{product.title}</Link><p className="mt-1 text-sm text-[#746875]">{product.author || product.type}</p><button onClick={() => removeFromCart(item.id, item.variant)} className="mt-4 flex items-center gap-1 text-xs font-bold uppercase tracking-[.1em] text-[#B274A2] hover:text-[#48458F]" data-testid={`button-remove-${product.id}`}><Trash2 size={13} />Remove</button></div><div className="flex items-center justify-between gap-8 sm:flex-col sm:items-end"><p className="font-semibold text-[#48458F]">{money(product.price * item.quantity)}</p><div className="flex items-center border border-[#d9c5cb]"><button onClick={() => updateQuantity(item.id, item.quantity - 1, item.variant)} className="grid h-8 w-8 place-items-center text-[#48458F]" aria-label="Decrease quantity" data-testid={`button-cart-minus-${product.id}`}><Minus size={14} /></button><span className="w-8 text-center text-sm">{item.quantity}</span><button onClick={() => updateQuantity(item.id, item.quantity + 1, item.variant)} disabled={cart.filter((line) => line.id === item.id).reduce((sum, line) => sum + line.quantity, 0) >= product.stock} className="grid h-8 w-8 place-items-center text-[#48458F] disabled:cursor-not-allowed disabled:opacity-40" aria-label="Increase quantity" data-testid={`button-cart-plus-${product.id}`}><Plus size={14} /></button></div></div></div></div>; })}</div><aside className="h-fit bg-[#FFF1EC] p-6 md:p-7"><h2 className="font-display text-2xl text-[#30263B]">A few numbers</h2><div className="mt-6 space-y-4 text-sm text-[#746875]"><div className="flex justify-between"><span>Subtotal</span><span className="font-semibold text-[#30263B]">{money(cartTotal)}</span></div><div className="flex justify-between"><span>Shipping</span><span className="font-semibold text-[#30263B]">{shipping ? money(shipping) : 'Free'}</span></div><div className="border-t border-[#e2cfd0] pt-4 text-base font-bold text-[#30263B] flex justify-between"><span>Total</span><span>{money(cartTotal + shipping)}</span></div></div><Link href="/checkout" className="mt-7 flex w-full items-center justify-center gap-2 bg-[#48458F] py-3.5 text-sm font-bold text-white hover:bg-[#30263B]" data-testid="button-checkout">Continue to checkout <ArrowRight size={16} /></Link><p className="mt-4 text-center text-xs leading-5 text-[#746875]">{`Free shipping on orders over ${FREE_SHIPPING_FROM.toLocaleString('en-US')} DA. No account needed.`}</p></aside></div></div></Shell>;
 }
 
 function WishlistPage() {
@@ -263,8 +265,146 @@ function Contact() {
   return <Shell><div className="container-lunaria grid gap-12 py-14 md:grid-cols-[.8fr_1.2fr] md:py-24"><div><p className="text-xs font-bold uppercase tracking-[.2em] text-[#B274A2]">Come say hello</p><h1 className="mt-4 font-display text-6xl leading-[.92] text-[#30263B]">We'd love to hear from you.</h1><p className="mt-6 max-w-sm text-sm leading-7 text-[#746875]">A recommendation request, a question about an order, or a story about a book that found you at the right time.</p><div className="mt-10 space-y-5 text-sm text-[#5e5262]"><p className="flex gap-3"><MapPin size={19} className="text-[#B274A2]" />Algiers, Algeria<br />DZ · 16000</p><p className="flex gap-3"><Clock3 size={19} className="text-[#B274A2]" />Saturday–Thursday, 10am–6pm<br />Friday · closed</p><p className="flex gap-3"><Mail size={19} className="text-[#B274A2]" />hello@nabibooks.dz</p></div></div><div className="bg-[#FFF1EC] p-6 md:p-10">{sent ? <div className="flex min-h-[440px] flex-col items-center justify-center text-center"><div className="grid h-16 w-16 place-items-center rounded-full bg-[#E8D7F0] text-[#48458F]"><Check size={28} /></div><h2 className="mt-6 font-display text-4xl text-[#30263B]">Message received.</h2><p className="mt-3 max-w-sm text-sm leading-6 text-[#746875]">We will write back soon — usually within one or two open-shop days.</p><button onClick={() => setSent(false)} className="mt-7 text-sm font-bold text-[#48458F] underline decoration-[#F8B2B2] decoration-2 underline-offset-4" data-testid="button-send-another">Send another note</button></div> : <form onSubmit={submit} className="space-y-6"><div className="grid gap-6 sm:grid-cols-2"><label className="text-xs font-bold uppercase tracking-[.1em] text-[#746875]">Name<input required className="mt-2 w-full border-b border-[#d9c5cb] bg-transparent py-3 text-sm outline-none focus:border-[#48458F]" placeholder="Your name" data-testid="input-contact-name" /></label><label className="text-xs font-bold uppercase tracking-[.1em] text-[#746875]">Email<input required type="email" className="mt-2 w-full border-b border-[#d9c5cb] bg-transparent py-3 text-sm outline-none focus:border-[#48458F]" placeholder="you@example.com" data-testid="input-contact-email" /></label></div><label className="block text-xs font-bold uppercase tracking-[.1em] text-[#746875]">What can we help with?<select className="mt-2 w-full border-b border-[#d9c5cb] bg-transparent py-3 text-sm outline-none focus:border-[#48458F]" data-testid="select-contact-topic"><option>Book recommendation</option><option>Order question</option><option>Shop visit</option><option>Something else</option></select></label><label className="block text-xs font-bold uppercase tracking-[.1em] text-[#746875]">Your note<textarea required rows={6} className="mt-2 w-full resize-none border-b border-[#d9c5cb] bg-transparent py-3 text-sm outline-none focus:border-[#48458F]" placeholder="Tell us a little..." data-testid="textarea-contact-message" /></label><button type="submit" className="flex items-center gap-2 bg-[#48458F] px-7 py-3.5 text-sm font-bold text-white hover:bg-[#30263B]" data-testid="button-contact-submit">Send your note <Send size={16} /></button></form>}</div></div></Shell>;
 }
 
+type CheckoutFieldProps = {
+  name: keyof CheckoutValues; label: string; value: string; onChange: (value: string) => void; error?: string;
+  optional?: boolean; multiline?: boolean; type?: string; autoComplete?: string; inputMode?: 'text' | 'tel' | 'email'; placeholder?: string;
+};
+
+function CheckoutField({ name, label, value, onChange, error, optional, multiline, type = 'text', autoComplete, inputMode, placeholder }: CheckoutFieldProps) {
+  const id = `checkout-${name}`;
+  const shared = {
+    id, name, value, autoComplete, placeholder,
+    onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(event.target.value),
+    'aria-invalid': error ? true : undefined,
+    'aria-describedby': error ? `${id}-error` : undefined,
+    'data-testid': `input-checkout-${name}`,
+  };
+  const look = `mt-2 w-full border-b bg-transparent py-3 text-sm outline-none focus:border-[#48458F] ${error ? 'border-[#B23A48]' : 'border-[#d9c5cb]'}`;
+  return <div>
+    <label htmlFor={id} className="block text-xs font-bold uppercase tracking-[.1em] text-[#746875]">{label}{optional && <span className="ml-2 font-normal normal-case tracking-normal text-[#a08fa0]">optional</span>}</label>
+    {multiline ? <textarea rows={3} {...shared} className={`${look} resize-none`} /> : <input type={type} inputMode={inputMode} {...shared} className={look} />}
+    {error && <p id={`${id}-error`} className="mt-2 text-xs text-[#B23A48]" role="alert">{error}</p>}
+  </div>;
+}
+
+function CheckoutPage() {
+  const { cart, cartTotal, clearCart } = useStore();
+  const { findProduct, isLoading, isError } = useCatalog();
+  const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
+  const [values, setValues] = useState<CheckoutValues>(EMPTY_CHECKOUT);
+  const [errors, setErrors] = useState<CheckoutErrors>({});
+  const [notice, setNotice] = useState('');
+  const [problems, setProblems] = useState<StockProblem[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const requestId = useRef(newRequestId());
+  const done = useRef(false);
+  useEffect(() => { window.scrollTo(0, 0); }, []);
+  useEffect(() => { if (notice) document.querySelector('[data-testid=checkout-notice]')?.scrollIntoView({ block: 'center' }); }, [notice, problems]);
+  const shipping = shippingFor(cartTotal);
+  const total = cartTotal + shipping;
+  const field = (name: keyof CheckoutValues) => ({ name, value: values[name], error: errors[name], onChange: (value: string) => setValues((current) => ({ ...current, [name]: value })) });
+  if (done.current) return null;
+  if (cart.length === 0) return <Shell><EmptyState title="Your bag is waiting" message="A good browsing session should end with at least one maybe. Take another turn around the shelves." href="/shop" label="Keep browsing" /></Shell>;
+  if (isLoading) return <Shell><CatalogNotice state="loading" /></Shell>;
+  if (isError) return <Shell><CatalogNotice state="error" /></Shell>;
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (submitting) return;
+    const found = validateCheckout(values);
+    setErrors(found);
+    setNotice('');
+    setProblems([]);
+    const firstWrong = Object.keys(found)[0];
+    if (firstWrong) { document.getElementById(`checkout-${firstWrong}`)?.focus(); return; }
+    setSubmitting(true);
+    const result = await placeOrder(values, cart, total, requestId.current);
+    setSubmitting(false);
+    if (result.status === 'placed') {
+      done.current = true;
+      saveLastOrder({ name: values.name.trim().split(/\s+/)[0], order: result.order });
+      setLocation('/order-confirmed');
+      clearCart();
+      queryClient.invalidateQueries({ queryKey: ['catalog'] });
+      return;
+    }
+    if (result.status === 'stock') {
+      setProblems(result.problems);
+      setNotice('Some things changed while you were shopping. We have updated your bag. Please check it and place your order again.');
+      queryClient.invalidateQueries({ queryKey: ['catalog'] });
+      requestId.current = newRequestId();
+    } else if (result.status === 'price_changed') {
+      setNotice(`A price changed while you were shopping. Your total is now ${money(result.total)}. Please check it and place your order again.`);
+      queryClient.invalidateQueries({ queryKey: ['catalog'] });
+      requestId.current = newRequestId();
+    } else if (result.status === 'invalid') {
+      setNotice('Something in your details was not accepted. Please check them and try again.');
+    } else {
+      setNotice('We could not confirm your order just now. Nothing was charged. Please try again in a moment.');
+    }
+  };
+
+  return <Shell><div className="container-lunaria py-14 md:py-20">
+    <Link href="/cart" className="inline-flex items-center gap-2 text-sm font-bold text-[#48458F]" data-testid="link-back-to-bag"><ArrowLeft size={16} /> Back to your bag</Link>
+    <p className="mt-8 text-xs font-bold uppercase tracking-[.2em] text-[#B274A2]">Nearly there</p>
+    <h1 className="mt-3 font-display text-5xl text-[#30263B] md:text-6xl">Checkout</h1>
+    <p className="mt-4 max-w-lg text-sm leading-6 text-[#746875]">No account needed. Tell us where to bring your order and pay in cash when it arrives.</p>
+    <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_380px]">
+      <form onSubmit={submit} noValidate className="space-y-6 bg-[#FFF1EC] p-6 md:p-10" data-testid="form-checkout">
+        {(notice || problems.length > 0) && <div role="alert" className="flex gap-3 border border-[#e6b8b8] bg-[#FDECEC] p-4 text-sm leading-6 text-[#7A2E2E]" data-testid="checkout-notice"><CircleAlert size={18} className="mt-1 shrink-0" /><div><p>{notice}</p>{problems.length > 0 && <ul className="mt-2 list-disc pl-5">{problems.map((problem) => <li key={problem.slug}>{problem.title}: {problem.available > 0 ? `only ${problem.available} left` : 'no longer available'}</li>)}</ul>}</div></div>}
+        <div className="grid gap-6 sm:grid-cols-2">
+          <CheckoutField label="Full name" autoComplete="name" placeholder="Your name" {...field('name')} />
+          <CheckoutField label="Phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="0555 12 34 56" {...field('phone')} />
+        </div>
+        <CheckoutField label="Email" optional type="email" inputMode="email" autoComplete="email" placeholder="you@example.com" {...field('email')} />
+        <CheckoutField label="Delivery address" autoComplete="street-address" placeholder="Street, number, district" {...field('address')} />
+        <CheckoutField label="City / wilaya" autoComplete="address-level1" placeholder="Algiers" {...field('wilaya')} />
+        <CheckoutField label="Notes for delivery" optional multiline placeholder="Anything we should know?" {...field('notes')} />
+        <button type="submit" disabled={submitting} className="flex w-full items-center justify-center gap-2 bg-[#48458F] px-7 py-3.5 text-sm font-bold text-white hover:bg-[#30263B] disabled:cursor-not-allowed disabled:opacity-60" data-testid="button-place-order">{submitting ? 'Placing your order…' : 'Place order'} <Check size={16} /></button>
+      </form>
+      <aside className="h-fit bg-[#FFF1EC] p-6 md:p-7">
+        <h2 className="font-display text-2xl text-[#30263B]">Your order</h2>
+        <ul className="mt-6 space-y-4 text-sm text-[#746875]">{cart.map((item) => { const product = findProduct(item.id); if (!product) return null; return <li key={`${item.id}-${item.variant}`} className="flex justify-between gap-4"><span>{product.title}{item.variant && item.variant !== 'Default' ? ` · ${item.variant}` : ''} × {item.quantity}</span><span className="whitespace-nowrap font-semibold text-[#30263B]">{money(product.price * item.quantity)}</span></li>; })}</ul>
+        <div className="mt-6 space-y-4 border-t border-[#e2cfd0] pt-6 text-sm text-[#746875]">
+          <div className="flex justify-between"><span>Subtotal</span><span className="font-semibold text-[#30263B]">{money(cartTotal)}</span></div>
+          <div className="flex justify-between"><span>Shipping</span><span className="font-semibold text-[#30263B]">{shipping ? money(shipping) : 'Free'}</span></div>
+          <div className="flex justify-between border-t border-[#e2cfd0] pt-4 text-base font-bold text-[#30263B]"><span>Total</span><span data-testid="text-checkout-total">{money(total)}</span></div>
+        </div>
+        <p className="mt-5 text-xs leading-5 text-[#746875]">Payment is in cash when your order arrives.</p>
+      </aside>
+    </div>
+  </div></Shell>;
+}
+
+function OrderConfirmedPage() {
+  useEffect(() => { window.scrollTo(0, 0); }, []);
+  const saved = readLastOrder();
+  if (!saved) return <Shell><EmptyState title="Nothing to confirm yet" message="Once you place an order, its details will show up here." href="/shop" label="Keep browsing" /></Shell>;
+  const { name, order } = saved;
+  return <Shell><div className="container-lunaria py-14 md:py-20">
+    <div className="mx-auto max-w-2xl">
+      <div className="grid h-16 w-16 place-items-center rounded-full bg-[#E8D7F0] text-[#48458F]"><Check size={28} /></div>
+      <p className="mt-8 text-xs font-bold uppercase tracking-[.2em] text-[#B274A2]">Order #{order.order_number}</p>
+      <h1 className="mt-3 font-display text-5xl text-[#30263B] md:text-6xl" data-testid="text-order-thanks">{`Thank you${name ? `, ${name}` : ''}.`}</h1>
+      <p className="mt-4 text-sm leading-7 text-[#746875]">Your order is in. We will get in touch on the phone number you gave us to arrange delivery, and you pay in cash when it arrives.</p>
+      <div className="mt-10 bg-[#FFF1EC] p-6 md:p-8">
+        <ul className="space-y-4 text-sm text-[#746875]">{order.items.map((line, index) => <li key={index} className="flex justify-between gap-4"><span>{line.title}{line.variant ? ` · ${line.variant}` : ''} × {line.quantity}</span><span className="whitespace-nowrap font-semibold text-[#30263B]">{money(line.line_total)}</span></li>)}</ul>
+        <div className="mt-6 space-y-4 border-t border-[#e2cfd0] pt-6 text-sm text-[#746875]">
+          <div className="flex justify-between"><span>Subtotal</span><span className="font-semibold text-[#30263B]">{money(order.subtotal)}</span></div>
+          <div className="flex justify-between"><span>Shipping</span><span className="font-semibold text-[#30263B]">{order.shipping_fee ? money(order.shipping_fee) : 'Free'}</span></div>
+          <div className="flex justify-between border-t border-[#e2cfd0] pt-4 text-base font-bold text-[#30263B]"><span>Total to pay on delivery</span><span data-testid="text-order-total">{money(order.total)}</span></div>
+        </div>
+      </div>
+      <Link href="/shop" className="mt-10 inline-flex bg-[#48458F] px-6 py-3 text-sm font-bold text-white hover:bg-[#30263B]" data-testid="link-keep-browsing">Keep browsing</Link>
+    </div>
+  </div></Shell>;
+}
+
 function Router() {
-  return <Switch><Route path="/" component={Home} /><Route path="/shop"><Catalog title="All the good things" eyebrow="The whole shop" description="A considered mix of books, notebooks, desk companions, and small gifts for curious people." /></Route><Route path="/books"><Catalog kind="book" title="Books to get lost in" eyebrow="The reading room" description="New fiction, thoughtful nonfiction, and poetry with a little weather in it." /></Route><Route path="/stationery"><Catalog kind="stationery" title="Paper for your ideas" eyebrow="The writing desk" description="Notebooks, pencils, and beautiful bits of paper for making a day feel more yours." /></Route><Route path="/product/:id" component={ProductPage} /><Route path="/about" component={About} /><Route path="/contact" component={Contact} /><Route path="/cart" component={CartPage} /><Route path="/wishlist" component={WishlistPage} /><Route path="/search" component={SearchPage} /><Route component={NotFound} /></Switch>;
+  return <Switch><Route path="/" component={Home} /><Route path="/shop"><Catalog title="All the good things" eyebrow="The whole shop" description="A considered mix of books, notebooks, desk companions, and small gifts for curious people." /></Route><Route path="/books"><Catalog kind="book" title="Books to get lost in" eyebrow="The reading room" description="New fiction, thoughtful nonfiction, and poetry with a little weather in it." /></Route><Route path="/stationery"><Catalog kind="stationery" title="Paper for your ideas" eyebrow="The writing desk" description="Notebooks, pencils, and beautiful bits of paper for making a day feel more yours." /></Route><Route path="/product/:id" component={ProductPage} /><Route path="/about" component={About} /><Route path="/contact" component={Contact} /><Route path="/cart" component={CartPage} /><Route path="/wishlist" component={WishlistPage} /><Route path="/search" component={SearchPage} />
+<Route path="/checkout" component={CheckoutPage} />
+<Route path="/order-confirmed" component={OrderConfirmedPage} /><Route component={NotFound} /></Switch>;
 }
 
 function App() {
