@@ -2,6 +2,7 @@ import { type FormEvent, type ReactNode, useState } from 'react';
 import { Link, Route, Switch, useLocation } from 'wouter';
 import { LayoutDashboard, Package, Tags, ShoppingBag, LogOut } from 'lucide-react';
 import { useAdminSession, adminSignIn, adminSignOut } from '@/lib/admin-auth';
+import { useLowStockProducts } from '@/lib/admin-inventory';
 import { AdminDashboard } from '@/components/admin/dashboard';
 import { AdminProductsList, AdminProductForm } from '@/components/admin/products';
 import { AdminCategoriesList, AdminCategoryForm } from '@/components/admin/categories';
@@ -48,24 +49,60 @@ function AdminLoginPage() {
 
 function AdminLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
+  const lowStockProducts = useLowStockProducts();
   const links = [
     ['/admin', 'Dashboard', LayoutDashboard],
     ['/admin/products', 'Products', Package],
     ['/admin/categories', 'Categories', Tags],
     ['/admin/orders', 'Orders', ShoppingBag],
   ] as const;
+  const [showLowStockPopup, setShowLowStockPopup] = useState(false);
   return (
     <div className="min-h-screen bg-[#FFF9F7] md:grid md:grid-cols-[220px_1fr]">
-      <aside className="border-r border-[#eadbd9] bg-white p-5">
+      <aside className="relative border-r border-[#eadbd9] bg-white p-5">
         <p className="font-display text-lg text-[#30263B]">NABI BOOKS</p>
         <p className="text-xs text-[#746875]">Admin</p>
         <nav className="mt-8 space-y-1">
           {links.map(([href, label, Icon]) => (
             <Link key={href} href={href} className={`flex items-center gap-2 rounded px-3 py-2 text-sm ${location === href ? 'bg-[#FCE0E0] font-semibold text-[#48458F]' : 'text-[#5d5262] hover:bg-[#FFF1EC]'}`}>
               <Icon size={16} />{label}
+              {href === '/admin/products' && lowStockProducts && lowStockProducts.length > 0 && (
+                <span
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowLowStockPopup((v) => !v);
+                  }}
+                  title="Click to see which products"
+                  className="ml-auto cursor-pointer rounded-full bg-[#DC2626] px-2 py-0.5 text-xs font-bold text-white shadow-sm"
+                >
+                  {lowStockProducts.length}
+                </span>
+              )}
             </Link>
           ))}
         </nav>
+        {showLowStockPopup && lowStockProducts && (
+          <div className="fixed inset-0 z-30 grid place-items-center bg-black/40 p-4" onClick={() => setShowLowStockPopup(false)}>
+            <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm border border-[#eadbd9] bg-white shadow-xl">
+              <div className="flex items-center justify-between border-b border-[#eadbd9] px-5 py-4">
+                <p className="font-display text-lg text-[#30263B]">Needs attention</p>
+                <button onClick={() => setShowLowStockPopup(false)} className="text-sm text-[#746875] hover:text-[#48458F]">✕</button>
+              </div>
+              <div className="max-h-80 divide-y divide-[#eadbd9] overflow-y-auto">
+                {lowStockProducts.map((p) => (
+                  <Link key={p.id} href={`/admin/products/${p.id}`} onClick={() => setShowLowStockPopup(false)}
+                    className="flex items-center justify-between px-5 py-3 text-sm hover:bg-[#FFF1EC]">
+                    <span className="text-[#30263B]">{p.title}</span>
+                    <span className={p.stock_quantity === 0 ? 'font-semibold text-[#DC2626]' : 'text-[#746875]'}>
+                      {p.stock_quantity === 0 ? 'Out of stock' : `${p.stock_quantity} left`}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
         <button onClick={() => adminSignOut()} className="mt-8 flex items-center gap-2 text-sm text-[#746875] hover:text-[#48458F]">
           <LogOut size={16} />Sign out
         </button>
