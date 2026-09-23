@@ -24,10 +24,13 @@ type Product = {
 };
 
 // ---------------------------------------------------------------- list page
+type ArchiveFilter = 'active' | 'archived' | 'all';
+
 export function AdminProductsList() {
   const [products, setProducts] = useState<Product[] | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState('');
+  const [archiveFilter, setArchiveFilter] = useState<ArchiveFilter>('active');
 
   async function load() {
     const [p, c] = await Promise.all([
@@ -47,18 +50,29 @@ export function AdminProductsList() {
   }
 
   const categoryName = (id: string) => categories.find((c) => c.id === id)?.name ?? '—';
+  const visibleProducts = products?.filter((p) =>
+    archiveFilter === 'all' ? true : archiveFilter === 'active' ? p.is_active : !p.is_active
+  );
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-3xl text-[#30263B]">Products</h1>
-        <Link href="/admin/products/new" className="bg-[#48458F] px-4 py-2 text-sm font-bold text-white">New product</Link>
+        <div className="flex items-center gap-3">
+          <select value={archiveFilter} onChange={(e) => setArchiveFilter(e.target.value as ArchiveFilter)}
+            className="border border-[#eadbd9] bg-white px-3 py-2 text-sm">
+            <option value="active">Active</option>
+            <option value="archived">Archived</option>
+            <option value="all">All</option>
+          </select>
+          <Link href="/admin/products/new" className="bg-[#48458F] px-4 py-2 text-sm font-bold text-white">New product</Link>
+        </div>
       </div>
       {error && <p role="alert" className="mt-4 text-sm text-[#B23A48]">{error}</p>}
       <div className="mt-6 divide-y divide-[#eadbd9] border border-[#eadbd9] bg-white">
         {products === null && <p className="p-4 text-sm text-[#746875]">Loading…</p>}
-        {products?.length === 0 && <p className="p-4 text-sm text-[#746875]">No products yet.</p>}
-        {products?.map((product) => (
+        {visibleProducts?.length === 0 && <p className="p-4 text-sm text-[#746875]">No products match this filter.</p>}
+        {visibleProducts?.map((product) => (
           <div key={product.id} className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
             <div className="min-w-0">
               <p className={`truncate font-semibold ${product.is_active ? 'text-[#30263B]' : 'text-[#a89ba8] line-through'}`}>{product.title}</p>
