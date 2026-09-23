@@ -7,6 +7,7 @@ import {
   SlidersHorizontal, Trash2, Twitter, X,
 } from 'lucide-react';
 import NotFound from '@/pages/not-found';
+import AdminApp from '@/pages/admin';
 import { type Product, type ProductKind, useCatalog } from '@/lib/catalog';
 import { searchProducts } from '@/lib/search';
 import { Highlight } from '@/components/highlight';
@@ -420,7 +421,7 @@ function OrderConfirmedPage() {
 function Router() {
   return <Switch><Route path="/" component={Home} /><Route path="/shop"><Catalog title="All the good things" eyebrow="The whole shop" description="A considered mix of books, notebooks, desk companions, and small gifts for curious people." /></Route><Route path="/books"><Catalog kind="book" title="Books to get lost in" eyebrow="The reading room" description="New fiction, thoughtful nonfiction, and poetry with a little weather in it." /></Route><Route path="/stationery"><Catalog kind="stationery" title="Paper for your ideas" eyebrow="The writing desk" description="Notebooks, pencils, and beautiful bits of paper for making a day feel more yours." /></Route><Route path="/product/:id" component={ProductPage} /><Route path="/about" component={About} /><Route path="/contact" component={Contact} /><Route path="/cart" component={CartPage} /><Route path="/wishlist" component={WishlistPage} /><Route path="/search" component={SearchPage} />
 <Route path="/checkout" component={CheckoutPage} />
-<Route path="/order-confirmed" component={OrderConfirmedPage} /><Route component={NotFound} /></Switch>;
+<Route path="/order-confirmed" component={OrderConfirmedPage} /><Route path="/admin" component={AdminApp} /><Route path="/admin/products" component={AdminApp} /><Route path="/admin/products/new" component={AdminApp} /><Route path="/admin/products/:id" component={AdminApp} /><Route path="/admin/categories" component={AdminApp} /><Route path="/admin/categories/new" component={AdminApp} /><Route path="/admin/categories/:id" component={AdminApp} /><Route path="/admin/orders" component={AdminApp} /><Route path="/admin/orders/:id" component={AdminApp} /><Route component={NotFound} /></Switch>;
 }
 
 function App() {
