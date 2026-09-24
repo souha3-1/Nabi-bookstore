@@ -31,6 +31,8 @@ export function AdminProductsList() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState('');
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilter>('active');
+  const [stockMessage, setStockMessage] = useState('');
+  const [adjustingId, setAdjustingId] = useState<string | null>(null);
 
   async function load() {
     const [p, c] = await Promise.all([
@@ -47,6 +49,20 @@ export function AdminProductsList() {
     const { error: err } = await supabase.from('products').update({ is_active: !product.is_active }).eq('id', product.id);
     if (err) { setError(err.message); return; }
     load();
+  }
+
+  // Reuses the same admin-only, RLS-protected update path as toggleActive above —
+  // no separate stock-update mechanism. Prevents going below 0.
+  async function adjustStock(product: Product, delta: number) {
+    const nextQty = Math.max(0, product.stock_quantity + delta);
+    if (nextQty === product.stock_quantity) return;
+    setAdjustingId(product.id);
+    const { error: err } = await supabase.from('products').update({ stock_quantity: nextQty }).eq('id', product.id);
+    setAdjustingId(null);
+    if (err) { setError(err.message); return; }
+    setProducts((prev) => prev?.map((p) => (p.id === product.id ? { ...p, stock_quantity: nextQty } : p)) ?? null);
+    setStockMessage('Stock updated.');
+    setTimeout(() => setStockMessage(''), 2000);
   }
 
   const categoryName = (id: string) => categories.find((c) => c.id === id)?.name ?? '—';
@@ -69,6 +85,7 @@ export function AdminProductsList() {
         </div>
       </div>
       {error && <p role="alert" className="mt-4 text-sm text-[#B23A48]">{error}</p>}
+      {stockMessage && <p role="status" className="mt-4 text-sm font-semibold text-[#1f7a3a]">{stockMessage}</p>}
       <div className="mt-6 divide-y divide-[#eadbd9] border border-[#eadbd9] bg-white">
         {products === null && <p className="p-4 text-sm text-[#746875]">Loading…</p>}
         {visibleProducts?.length === 0 && <p className="p-4 text-sm text-[#746875]">No products match this filter.</p>}
@@ -76,7 +93,14 @@ export function AdminProductsList() {
           <div key={product.id} className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
             <div className="min-w-0">
               <p className={`truncate font-semibold ${product.is_active ? 'text-[#30263B]' : 'text-[#a89ba8] line-through'}`}>{product.title}</p>
-              <p className="text-xs text-[#746875]">{categoryName(product.category_id)} · {product.price} DZD · stock {product.stock_quantity}</p>
+              <p className="text-xs text-[#746875]">{categoryName(product.category_id)} · {product.price} DZD</p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <button onClick={() => adjustStock(product, -1)} disabled={adjustingId === product.id || product.stock_quantity === 0}
+                className="h-7 w-7 border border-[#eadbd9] text-[#30263B] hover:bg-[#FFF1EC] disabled:opacity-40">−</button>
+              <span className="w-10 text-center font-semibold text-[#30263B]">{product.stock_quantity}</span>
+              <button onClick={() => adjustStock(product, 1)} disabled={adjustingId === product.id}
+                className="h-7 w-7 border border-[#eadbd9] text-[#30263B] hover:bg-[#FFF1EC] disabled:opacity-40">+</button>
             </div>
             <div className="flex shrink-0 items-center gap-3">
               {!product.is_active && <span className="rounded-full bg-[#eadbd9] px-2 py-0.5 text-xs text-[#746875]">archived</span>}
