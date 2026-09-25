@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
 import { supabase } from '@/lib/supabase';
+import { useLowStockProducts } from '@/lib/admin-inventory';
 
 type Stats = {
   totalProducts: number;
-  lowStock: number;
-  outOfStock: number;
   pendingOrders: number;
 };
 
@@ -21,28 +20,20 @@ export function AdminDashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [recent, setRecent] = useState<RecentOrder[]>([]);
   const [error, setError] = useState('');
+  const lowStockProducts = useLowStockProducts();
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      // low/out-of-stock compare two columns against each other (stock_quantity vs
-      // low_stock_threshold), which PostgREST can't express as a query-string filter —
-      // so pull stock levels for active products and compare them client-side instead.
-      const [stockLevels, pending, recentOrders] = await Promise.all([
-        supabase.from('products').select('stock_quantity, low_stock_threshold').eq('is_active', true),
+      const [total, pending, recentOrders] = await Promise.all([
+        supabase.from('products').select('id', { count: 'exact', head: true }).eq('is_active', true),
         supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
         supabase.from('orders').select('order_number, customer_name, total, status, created_at').order('created_at', { ascending: false }).limit(5),
       ]);
       if (cancelled) return;
-      const firstError = [stockLevels, pending, recentOrders].find((r) => r.error)?.error;
+      const firstError = [total, pending, recentOrders].find((r) => r.error)?.error;
       if (firstError) { setError(firstError.message); return; }
-      const products = stockLevels.data ?? [];
-      setStats({
-        totalProducts: products.length,
-        lowStock: products.filter((p) => p.stock_quantity > 0 && p.stock_quantity <= p.low_stock_threshold).length,
-        outOfStock: products.filter((p) => p.stock_quantity === 0).length,
-        pendingOrders: pending.count ?? 0,
-      });
+      setStats({ totalProducts: total.count ?? 0, pendingOrders: pending.count ?? 0 });
       setRecent(recentOrders.data ?? []);
     }
     load();
@@ -50,12 +41,15 @@ export function AdminDashboard() {
   }, []);
 
   if (error) return <p role="alert" className="text-sm text-[#B23A48]">{error}</p>;
-  if (!stats) return <p className="text-sm text-[#746875]">Loading…</p>;
+  if (!stats || lowStockProducts === null) return <p className="text-sm text-[#746875]">Loading…</p>;
+
+  const outOfStockCount = lowStockProducts.filter((p) => p.stock_quantity === 0).length;
+  const lowStockCount = lowStockProducts.length - outOfStockCount;
 
   const cards = [
     ['Active products', stats.totalProducts],
-    ['Low stock', stats.lowStock],
-    ['Out of stock', stats.outOfStock],
+    ['Low stock', lowStockCount],
+    ['Out of stock', outOfStockCount],
     ['Pending orders', stats.pendingOrders],
   ] as const;
 
@@ -70,6 +64,23 @@ export function AdminDashboard() {
           </div>
         ))}
       </div>
+
+      {lowStockProducts.length > 0 && (
+        <>
+          <h2 className="mt-10 font-display text-xl text-[#30263B]">Low stock</h2>
+          <div className="mt-3 divide-y divide-[#eadbd9] border border-[#eadbd9] bg-white">
+            {lowStockProducts.map((p) => (
+              <div key={p.id} className="flex items-center justify-between px-4 py-3 text-sm">
+                <span className="text-[#30263B]">{p.title}</span>
+                <span className={p.stock_quantity === 0 ? 'font-semibold text-[#B23A48]' : 'text-[#746875]'}>
+                  {p.stock_quantity === 0 ? 'Out of stock' : `${p.stock_quantity} left`}
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
       <h2 className="mt-10 font-display text-xl text-[#30263B]">Recent orders</h2>
       <div className="mt-3 divide-y divide-[#eadbd9] border border-[#eadbd9] bg-white">
         {recent.length === 0 && <p className="p-4 text-sm text-[#746875]">No orders yet.</p>}
