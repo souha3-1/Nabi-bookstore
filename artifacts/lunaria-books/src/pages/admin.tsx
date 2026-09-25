@@ -3,6 +3,7 @@ import { Link, Route, Switch, useLocation } from 'wouter';
 import { LayoutDashboard, Package, Tags, ShoppingBag, LogOut } from 'lucide-react';
 import { useAdminSession, adminSignIn, adminSignOut } from '@/lib/admin-auth';
 import { useLowStockProducts } from '@/lib/admin-inventory';
+import { AdminGlobalSearch } from '@/components/admin/global-search';
 import { AdminDashboard } from '@/components/admin/dashboard';
 import { AdminProductsList, AdminProductForm } from '@/components/admin/products';
 import { AdminCategoriesList, AdminCategoryForm } from '@/components/admin/categories';
@@ -107,7 +108,12 @@ function AdminLayout({ children }: { children: ReactNode }) {
           <LogOut size={16} />Sign out
         </button>
       </aside>
-      <main className="p-6 md:p-8">{children}</main>
+      <main className="p-6 md:p-8">
+        <div className="mx-auto mb-6 max-w-md">
+          <AdminGlobalSearch />
+        </div>
+        {children}
+      </main>
     </div>
   );
 }

@@ -8,6 +8,7 @@ type Status = (typeof STATUSES)[number];
 type OrderRow = {
   order_number: number;
   customer_name: string;
+  customer_phone: string;
   status: Status;
   total: number;
   created_at: string;
@@ -23,7 +24,6 @@ type OrderItem = {
 };
 
 type OrderDetail = OrderRow & {
-  customer_phone: string;
   delivery_address: string;
   wilaya: string;
   commune: string;
@@ -43,12 +43,45 @@ const statusStyle: Record<Status, string> = {
   cancelled: 'bg-[#f3dede] text-[#8f2f2f]',
 };
 
+type OrderSort = 'newest' | 'oldest' | 'total-desc' | 'total-asc';
+type DateFilter = 'all' | 'today' | 'yesterday' | '7days' | '30days';
+
+const sortOrders = (orders: OrderRow[], sort: OrderSort): OrderRow[] => {
+  const sorted = [...orders];
+  switch (sort) {
+    case 'newest': return sorted.sort((a, b) => b.created_at.localeCompare(a.created_at));
+    case 'oldest': return sorted.sort((a, b) => a.created_at.localeCompare(b.created_at));
+    case 'total-desc': return sorted.sort((a, b) => b.total - a.total);
+    case 'total-asc': return sorted.sort((a, b) => a.total - b.total);
+  }
+};
+
+const matchesDateFilter = (createdAt: string, filter: DateFilter): boolean => {
+  if (filter === 'all') return true;
+  const created = new Date(createdAt);
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const daysAgo = (n: number) => new Date(startOfToday.getTime() - n * 86400000);
+  switch (filter) {
+    case 'today': return created >= startOfToday;
+    case 'yesterday': return created >= daysAgo(1) && created < startOfToday;
+    case '7days': return created >= daysAgo(7);
+    case '30days': return created >= daysAgo(30);
+  }
+};
+
 export function AdminOrdersList() {
   const [orders, setOrders] = useState<OrderRow[] | null>(null);
   const [error, setError] = useState('');
+  const [sortOption, setSortOption] = useState<OrderSort>('newest');
+  const [statusFilter, setStatusFilter] = useState<Status | 'all'>('all');
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   useEffect(() => {
-    supabase.from('orders').select('order_number, customer_name, status, total, created_at')
+    supabase.from('orders').select('order_number, customer_name, customer_phone, status, total, created_at')
       .order('order_number', { ascending: false })
       .then(({ data, error: err }) => {
         if (err) { setError(err.message); return; }
@@ -56,14 +89,59 @@ export function AdminOrdersList() {
       });
   }, []);
 
+  useEffect(() => { setPage(1); }, [query, statusFilter, dateFilter, sortOption]);
+
+  const q = query.trim().toLowerCase();
+  const filtered = orders?.filter((o) => {
+    if (statusFilter !== 'all' && o.status !== statusFilter) return false;
+    if (!matchesDateFilter(o.created_at, dateFilter)) return false;
+    if (!q) return true;
+    return (
+      String(o.order_number).includes(q) ||
+      o.customer_name.toLowerCase().includes(q) ||
+      o.customer_phone.toLowerCase().includes(q)
+    );
+  });
+  const visibleOrders = filtered ? sortOrders(filtered, sortOption) : undefined;
+  const totalPages = visibleOrders ? Math.max(1, Math.ceil(visibleOrders.length / pageSize)) : 1;
+  const currentPage = Math.min(page, totalPages);
+  const pagedOrders = visibleOrders?.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
   return (
     <div>
-      <h1 className="font-display text-3xl text-[#30263B]">Orders</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-display text-3xl text-[#30263B]">Orders</h1>
+      </div>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <input type="search" value={query} onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search order #, name, or phone…"
+          className="min-w-[220px] flex-1 border border-[#eadbd9] bg-white px-3 py-2 text-sm outline-none focus:border-[#48458F]" />
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as Status | 'all')}
+          className="border border-[#eadbd9] bg-white px-3 py-2 text-sm">
+          <option value="all">All statuses</option>
+          {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <select value={dateFilter} onChange={(e) => setDateFilter(e.target.value as DateFilter)}
+          className="border border-[#eadbd9] bg-white px-3 py-2 text-sm">
+          <option value="all">Any date</option>
+          <option value="today">Today</option>
+          <option value="yesterday">Yesterday</option>
+          <option value="7days">Last 7 days</option>
+          <option value="30days">Last 30 days</option>
+        </select>
+        <select value={sortOption} onChange={(e) => setSortOption(e.target.value as OrderSort)}
+          className="border border-[#eadbd9] bg-white px-3 py-2 text-sm">
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+          <option value="total-desc">Highest total</option>
+          <option value="total-asc">Lowest total</option>
+        </select>
+      </div>
       {error && <p role="alert" className="mt-4 text-sm text-[#B23A48]">{error}</p>}
       <div className="mt-6 divide-y divide-[#eadbd9] border border-[#eadbd9] bg-white">
         {orders === null && <p className="p-4 text-sm text-[#746875]">Loading…</p>}
-        {orders?.length === 0 && <p className="p-4 text-sm text-[#746875]">No orders yet.</p>}
-        {orders?.map((order) => (
+        {visibleOrders?.length === 0 && <p className="p-4 text-sm text-[#746875]">No orders match your search/filters.</p>}
+        {pagedOrders?.map((order) => (
           <Link key={order.order_number} href={`/admin/orders/${order.order_number}`}
             className="flex items-center justify-between px-4 py-3 text-sm hover:bg-[#FFF1EC]">
             <span>#{order.order_number} — {order.customer_name}</span>
@@ -74,6 +152,17 @@ export function AdminOrdersList() {
           </Link>
         ))}
       </div>
+      {visibleOrders && visibleOrders.length > pageSize && (
+        <div className="mt-4 flex items-center justify-between text-sm text-[#746875]">
+          <span>Page {currentPage} of {totalPages} ({visibleOrders.length} orders)</span>
+          <div className="flex gap-2">
+            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}
+              className="border border-[#eadbd9] bg-white px-3 py-1.5 disabled:opacity-40">Previous</button>
+            <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
+              className="border border-[#eadbd9] bg-white px-3 py-1.5 disabled:opacity-40">Next</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
