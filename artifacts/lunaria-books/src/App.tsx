@@ -13,7 +13,6 @@ import { searchProducts } from '@/lib/search';
 import { Highlight } from '@/components/highlight';
 import { type SelectOption, SearchSelect } from '@/components/search-select';
 import { type CheckoutErrors, type CheckoutValues, type StockProblem, DELIVERY_LABELS, EMPTY_CHECKOUT, newRequestId, placeOrder, readLastOrder, saveLastOrder, validateCheckout } from '@/lib/checkout';
-import { WISHLIST_KEY, parseSavedWishlist, readSavedWishlist } from '@/lib/wishlist';
 import { type CartItem, CART_KEY, FREE_SHIPPING_FROM, fitCartToStock, parseSavedCart, readSavedCart, saveToStorage, shippingFor } from '@/lib/cart';
 
 
@@ -21,10 +20,10 @@ import { type CartItem, CART_KEY, FREE_SHIPPING_FROM, fitCartToStock, parseSaved
 const money = (value: number) => `${new Intl.NumberFormat('fr-DZ', { maximumFractionDigits: 0 }).format(value)} DA`;
 
 type StoreContextValue = {
-  cart: CartItem[]; wishlist: string[]; cartCount: number; cartTotal: number;
+  cart: CartItem[]; cartCount: number; cartTotal: number;
   addToCart: (id: string, quantity?: number, variant?: string) => void;
   updateQuantity: (id: string, quantity: number, variant?: string) => void; removeFromCart: (id: string, variant?: string) => void;
-  toggleWishlist: (id: string) => void; moveToCart: (id: string) => void; clearCart: () => void;
+  clearCart: () => void;
   notify: (message: string) => void;
 };
 const StoreContext = createContext<StoreContextValue | null>(null);
@@ -37,24 +36,16 @@ const useStore = () => {
 function StoreProvider({ children }: { children: ReactNode }) {
   const { findProduct, isReady } = useCatalog();
   const [cart, setCart] = useState<CartItem[]>(readSavedCart);
-  const [wishlist, setWishlist] = useState<string[]>(readSavedWishlist);
   const [toast, setToast] = useState('');
   useEffect(() => saveToStorage(CART_KEY, cart), [cart]);
-  useEffect(() => saveToStorage(WISHLIST_KEY, wishlist), [wishlist]);
-  // If the bag or the wishlist changes in another tab, this tab follows it.
+  // If the bag changes in another tab, this tab follows it.
   useEffect(() => {
     const follow = (event: StorageEvent) => {
       if (event.key === CART_KEY || event.key === null) setCart(parseSavedCart(event.key === null ? null : event.newValue));
-      if (event.key === WISHLIST_KEY || event.key === null) setWishlist(parseSavedWishlist(event.key === null ? null : event.newValue));
     };
     window.addEventListener('storage', follow);
     return () => window.removeEventListener('storage', follow);
   }, []);
-  // Only after a successful load: drop saved ids that are no longer in the catalog (never while loading or after an error).
-  useEffect(() => {
-    if (!isReady) return;
-    setWishlist((current) => { const kept = current.filter((id) => findProduct(id)); return kept.length === current.length ? current : kept; });
-  }, [isReady, findProduct]);
   // Keep the bag within what is in stock, and drop products that no longer exist (only after a successful load).
   useEffect(() => {
     if (!isReady) return;
@@ -66,7 +57,7 @@ function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => { if (!toast) return; const timeout = window.setTimeout(() => setToast(''), 3200); return () => window.clearTimeout(timeout); }, [toast]);
 
   const value = useMemo<StoreContextValue>(() => ({
-    cart, wishlist,
+    cart,
     cartCount: cart.reduce((sum, item) => sum + item.quantity, 0),
     cartTotal: cart.reduce((sum, item) => sum + (findProduct(item.id)?.price || 0) * item.quantity, 0),
     addToCart: (id, quantity = 1, variant = 'Default') => {
@@ -88,20 +79,9 @@ function StoreProvider({ children }: { children: ReactNode }) {
       setCart((current) => next < 1 ? current.filter((item) => item.id !== id || item.variant !== variant) : current.map((item) => item.id === id && item.variant === variant ? { ...item, quantity: next } : item));
     },
     removeFromCart: (id, variant) => { setCart((current) => current.filter((item) => item.id !== id || item.variant !== variant)); setToast('Removed from your bag'); },
-    toggleWishlist: (id) => {
-      setWishlist((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
-      setToast(wishlist.includes(id) ? 'Removed from your wishlist' : 'Saved to your wishlist');
-    },
-    moveToCart: (id) => {
-      const product = findProduct(id);
-      if (!product || product.stock < 1) { setToast('Sorry, that one is out of stock'); return; }
-      setCart((current) => current.some((item) => item.id === id) ? current : [...current, { id, quantity: 1, variant: 'Default' }]);
-      setWishlist((current) => current.filter((item) => item !== id));
-      setToast('Moved to your bag');
-    },
     clearCart: () => setCart([]),
     notify: setToast,
-  }), [cart, wishlist, findProduct]);
+  }), [cart, findProduct]);
   return <StoreContext.Provider value={value}>{children}{toast && <div role="status" aria-live="polite" className="fixed bottom-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 bg-[#30263B] px-5 py-3 text-sm font-medium text-[#FFF9F7] shadow-xl animate-rise"><Check size={17} className="text-[#F8B2B2]" />{toast}<button aria-label="Dismiss message" data-testid="button-dismiss-toast" onClick={() => setToast('')}><X size={15} /></button></div>}</StoreContext.Provider>;
 }
 
@@ -112,7 +92,7 @@ function Logo({ light = false }: { light?: boolean }) {
 function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [location, setLocation] = useLocation();
-  const { cartCount, wishlist } = useStore();
+  const { cartCount } = useStore();
   const [query, setQuery] = useState('');
   const submitSearch = (event: FormEvent) => { event.preventDefault(); setLocation(query.trim() ? `/search?q=${encodeURIComponent(query.trim())}` : '/search'); setMenuOpen(false); };
   const navItems = [['Shop', '/shop'], ['Books', '/books'], ['Stationery', '/stationery'], ['Our story', '/about']];
@@ -127,7 +107,7 @@ function Header() {
           <button type="submit" aria-label="Search" className="mr-2 text-[#8B659C]"><Search size={16} /></button><input value={query} onChange={(event) => setQuery(event.target.value)} className="w-[130px] bg-transparent text-sm outline-none placeholder:text-[#8b7c87]" placeholder="Search the shelves" aria-label="Search the shelves" data-testid="input-header-search" />
         </form>
         <Link href="/search" className="grid h-10 w-10 place-items-center rounded-full text-[#48458F] hover:bg-[#FCE0E0] sm:hidden" aria-label="Search" data-testid="link-search"><Search size={19} /></Link>
-        <Link href="/wishlist" className="relative grid h-10 w-10 place-items-center rounded-full text-[#48458F] hover:bg-[#FCE0E0]" aria-label={`Wishlist, ${wishlist.length} items`} data-testid="link-wishlist"><Heart size={19} strokeWidth={1.8} />{wishlist.length > 0 && <span className="absolute right-0 top-0 grid h-4 min-w-4 place-items-center rounded-full bg-[#B274A2] px-1 text-[10px] font-bold text-white">{wishlist.length}</span>}</Link>
+        
         <Link href="/cart" className="relative grid h-10 w-10 place-items-center rounded-full text-[#48458F] hover:bg-[#FCE0E0]" aria-label={`Shopping bag, ${cartCount} items`} data-testid="link-cart"><ShoppingBag size={19} strokeWidth={1.8} />{cartCount > 0 && <span className="absolute right-0 top-0 grid h-4 min-w-4 place-items-center rounded-full bg-[#48458F] px-1 text-[10px] font-bold text-white">{cartCount}</span>}</Link>
         <button className="grid h-10 w-10 place-items-center rounded-full text-[#48458F] hover:bg-[#FCE0E0] lg:hidden" onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? 'Close menu' : 'Open menu'} data-testid="button-mobile-menu">{menuOpen ? <X size={21} /> : <Menu size={21} />}</button>
       </div>
@@ -140,7 +120,7 @@ function Footer() {
   return <footer className="mt-24 bg-[#30263B] text-[#FFF9F7]">
     <div className="container-lunaria grid gap-12 py-14 md:grid-cols-[1.4fr_1fr]">
        <div><Logo light /><p className="mt-5 max-w-[230px] text-sm leading-6 text-[#e5d8e0]">Books, paper goods, and small reasons to stay curious. From Algiers, with care.</p><div className="mt-6 flex gap-3"><a href="https://www.instagram.com/nabi_novels2?stkn=djkyaG56czZ2cWxm" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="grid h-9 w-9 place-items-center rounded-full border border-[#6b5e79] hover:bg-[#48458F]" data-testid="link-instagram"><Instagram size={16} /></a></div></div>
-      <div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#F8B2B2]">Browse</p><div className="mt-5 flex flex-col gap-3 text-sm text-[#e5d8e0]"><Link href="/books" className="hover:text-white" data-testid="link-footer-books">Books</Link><Link href="/stationery" className="hover:text-white" data-testid="link-footer-stationery">Stationery</Link><Link href="/shop" className="hover:text-white" data-testid="link-footer-shop">All shelves</Link><Link href="/wishlist" className="hover:text-white" data-testid="link-footer-wishlist">Wishlist</Link></div></div>
+      <div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#F8B2B2]">Browse</p><div className="mt-5 flex flex-col gap-3 text-sm text-[#e5d8e0]"><Link href="/books" className="hover:text-white" data-testid="link-footer-books">Books</Link><Link href="/stationery" className="hover:text-white" data-testid="link-footer-stationery">Stationery</Link><Link href="/shop" className="hover:text-white" data-testid="link-footer-shop">All shelves</Link></div></div>
        
       
     </div>
@@ -157,13 +137,12 @@ function ProductImage({ product, large = false }: { product: Product; large?: bo
 }
 
 function ProductCard({ product, index = 0, highlight }: { product: Product; index?: number; highlight?: string }) {
-  const { wishlist, toggleWishlist, addToCart } = useStore();
-  const saved = wishlist.includes(product.id);
+  const { addToCart } = useStore();
   return <article className="group animate-rise" style={{ animationDelay: `${index * 70}ms` }} data-testid={`card-product-${product.id}`}>
     <div className="relative">
       <Link href={`/product/${product.id}`} className="block" data-testid={`link-product-${product.id}`}><ProductImage product={product} /></Link>
       {product.badge && <span className="absolute left-3 top-3 rounded-full bg-[#FFF9F7] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.12em] text-[#48458F] shadow-sm">{product.badge}</span>}
-      <button onClick={() => toggleWishlist(product.id)} aria-label={saved ? `Remove ${product.title} from wishlist` : `Save ${product.title} to wishlist`} className={`absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-[#FFF9F7]/90 transition hover:bg-[#FCE0E0] ${saved ? 'text-[#B274A2]' : 'text-[#48458F]'}`} data-testid={`button-wishlist-${product.id}`}><Heart size={17} fill={saved ? 'currentColor' : 'none'} /></button>
+      
     </div>
     <div className="pt-4"><div className="flex items-start justify-between gap-3"><div><Link href={`/product/${product.id}`} className="font-display text-[1.18rem] leading-5 text-[#30263B] hover:text-[#48458F]" data-testid={`link-title-${product.id}`}><Highlight text={product.title} query={highlight} /></Link><p className="mt-1 text-xs text-[#746875]"><Highlight text={product.author || product.type || ''} query={highlight} /></p></div><p className="whitespace-nowrap text-sm font-semibold text-[#48458F]">{money(product.price)}</p></div><div className="mt-3 flex items-center justify-end">{product.stock < 1 ? <span className="text-xs font-bold uppercase tracking-[.13em] text-[#746875]" data-testid={`text-soldout-${product.id}`}>Out of stock</span> : <button onClick={() => addToCart(product.id)} className="text-xs font-bold uppercase tracking-[.13em] text-[#48458F] underline decoration-[#F8B2B2] decoration-2 underline-offset-4 hover:text-[#B274A2]" data-testid={`button-add-${product.id}`}>Add to bag</button>}</div></div>
   </article>;
@@ -205,12 +184,12 @@ function ProductPage() {
 }
 
 function ProductDetail({ product }: { product: Product }) {
-  const { cart, wishlist, toggleWishlist, addToCart } = useStore();
+  const { cart, addToCart } = useStore();
   const [quantity, setQuantity] = useState(1);
   const room = Math.max(0, product.stock - cart.filter((line) => line.id === product.id).reduce((sum, line) => sum + line.quantity, 0));
   const qty = Math.min(quantity, Math.max(room, 1));
   const [variant, setVariant] = useState(product.colors[0] || 'Default');
-  return <Shell><div className="container-lunaria py-8 md:py-14"><Link href={product.kind === 'book' ? '/books' : '/stationery'} className="mb-8 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[.13em] text-[#746875]" data-testid="link-product-back"><ArrowLeft size={15} />Back to {product.kind === 'book' ? 'books' : 'stationery'}</Link><div className="grid gap-10 md:grid-cols-[.9fr_1.1fr] md:gap-16"><div><ProductImage product={product} large /></div><div className="flex flex-col justify-center"><p className="text-xs font-bold uppercase tracking-[.2em] text-[#B274A2]">{product.kind === 'book' ? 'A book to keep close' : product.type}</p><h1 className="mt-3 font-display text-5xl leading-[.98] tracking-[-.04em] text-[#30263B] md:text-6xl">{product.title}</h1><p className="mt-3 font-display text-xl italic text-[#8B659C]">{product.author || 'A NABI NOVELS paper good'}</p><div className="mt-5 flex items-center gap-4"><span className="text-sm text-[#B274A2]">{product.availability}</span></div><p className="mt-7 max-w-lg text-base leading-7 text-[#5e5262]">{product.description}</p><p className="mt-7 border-t border-[#eadbd9] pt-5 text-2xl font-semibold text-[#48458F]">{money(product.price)}</p><div className="mt-6 flex flex-wrap gap-3">{product.colors.map((color) => <button key={color} onClick={() => setVariant(color)} className={`border px-4 py-2 text-sm ${variant === color ? 'border-[#48458F] bg-[#48458F] text-white' : 'border-[#e6d4d7] text-[#5e5262] hover:border-[#48458F]'}`} data-testid={`button-variant-${color.toLowerCase()}`}>{color}</button>)}</div><div className="mt-7 flex flex-wrap gap-3"><div className="flex items-center border border-[#d9c5cb]"><button onClick={() => setQuantity(Math.max(1, qty - 1))} className="grid h-12 w-11 place-items-center text-[#48458F] hover:bg-[#FCE0E0]" aria-label="Decrease quantity" data-testid="button-quantity-decrease"><Minus size={15} /></button><span className="w-9 text-center text-sm" data-testid="text-product-quantity">{qty}</span><button onClick={() => setQuantity(Math.min(room, qty + 1))} disabled={qty >= room} className="grid h-12 w-11 place-items-center text-[#48458F] hover:bg-[#FCE0E0] disabled:cursor-not-allowed disabled:opacity-40" aria-label="Increase quantity" data-testid="button-quantity-increase"><Plus size={15} /></button></div><button onClick={() => addToCart(product.id, qty, variant)} disabled={room < 1} className="flex h-12 flex-1 items-center justify-center gap-2 bg-[#48458F] px-7 text-sm font-bold text-white transition hover:bg-[#30263B] disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none" data-testid="button-product-add">{product.stock < 1 ? 'Out of stock' : room < 1 ? 'All in your bag' : 'Add to bag'} <ShoppingBag size={16} /></button><button onClick={() => toggleWishlist(product.id)} className={`grid h-12 w-12 place-items-center border ${wishlist.includes(product.id) ? 'border-[#B274A2] text-[#B274A2]' : 'border-[#d9c5cb] text-[#48458F]'} hover:bg-[#FCE0E0]`} aria-label="Toggle wishlist" data-testid="button-product-wishlist"><Heart size={18} fill={wishlist.includes(product.id) ? 'currentColor' : 'none'} /></button></div><div className="mt-8 grid gap-3 border-t border-[#eadbd9] pt-6 text-sm text-[#746875] sm:grid-cols-2"><p className="flex gap-2"><Package size={17} className="shrink-0 text-[#B274A2]" /> Carefully packed in recyclable materials</p><p className="flex gap-2"><BookOpen size={17} className="shrink-0 text-[#B274A2]" /> {product.details}</p></div></div></div></div></Shell>;
+  return <Shell><div className="container-lunaria py-8 md:py-14"><Link href={product.kind === 'book' ? '/books' : '/stationery'} className="mb-8 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[.13em] text-[#746875]" data-testid="link-product-back"><ArrowLeft size={15} />Back to {product.kind === 'book' ? 'books' : 'stationery'}</Link><div className="grid gap-10 md:grid-cols-[.9fr_1.1fr] md:gap-16"><div><ProductImage product={product} large /></div><div className="flex flex-col justify-center"><p className="text-xs font-bold uppercase tracking-[.2em] text-[#B274A2]">{product.kind === 'book' ? 'A book to keep close' : product.type}</p><h1 className="mt-3 font-display text-5xl leading-[.98] tracking-[-.04em] text-[#30263B] md:text-6xl">{product.title}</h1><p className="mt-3 font-display text-xl italic text-[#8B659C]">{product.author || 'A NABI NOVELS paper good'}</p><div className="mt-5 flex items-center gap-4"><span className="text-sm text-[#B274A2]">{product.availability}</span></div><p className="mt-7 max-w-lg text-base leading-7 text-[#5e5262]">{product.description}</p><p className="mt-7 border-t border-[#eadbd9] pt-5 text-2xl font-semibold text-[#48458F]">{money(product.price)}</p><div className="mt-6 flex flex-wrap gap-3">{product.colors.map((color) => <button key={color} onClick={() => setVariant(color)} className={`border px-4 py-2 text-sm ${variant === color ? 'border-[#48458F] bg-[#48458F] text-white' : 'border-[#e6d4d7] text-[#5e5262] hover:border-[#48458F]'}`} data-testid={`button-variant-${color.toLowerCase()}`}>{color}</button>)}</div><div className="mt-7 flex flex-wrap gap-3"><div className="flex items-center border border-[#d9c5cb]"><button onClick={() => setQuantity(Math.max(1, qty - 1))} className="grid h-12 w-11 place-items-center text-[#48458F] hover:bg-[#FCE0E0]" aria-label="Decrease quantity" data-testid="button-quantity-decrease"><Minus size={15} /></button><span className="w-9 text-center text-sm" data-testid="text-product-quantity">{qty}</span><button onClick={() => setQuantity(Math.min(room, qty + 1))} disabled={qty >= room} className="grid h-12 w-11 place-items-center text-[#48458F] hover:bg-[#FCE0E0] disabled:cursor-not-allowed disabled:opacity-40" aria-label="Increase quantity" data-testid="button-quantity-increase"><Plus size={15} /></button></div><button onClick={() => addToCart(product.id, qty, variant)} disabled={room < 1} className="flex h-12 flex-1 items-center justify-center gap-2 bg-[#48458F] px-7 text-sm font-bold text-white transition hover:bg-[#30263B] disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none" data-testid="button-product-add">{product.stock < 1 ? 'Out of stock' : room < 1 ? 'All in your bag' : 'Add to bag'} <ShoppingBag size={16} /></button></div><div className="mt-8 grid gap-3 border-t border-[#eadbd9] pt-6 text-sm text-[#746875] sm:grid-cols-2"><p className="flex gap-2"><Package size={17} className="shrink-0 text-[#B274A2]" /> Carefully packed in recyclable materials</p><p className="flex gap-2"><BookOpen size={17} className="shrink-0 text-[#B274A2]" /> {product.details}</p></div></div></div></div></Shell>;
 }
 
 function EmptyState({ title, message, href, label }: { title: string; message: string; href: string; label: string }) {
@@ -230,15 +209,6 @@ function CartPage() {
   if (isLoading) return <Shell><CatalogNotice state="loading" /></Shell>;
   if (isError) return <Shell><CatalogNotice state="error" /></Shell>;
   return <Shell><div className="container-lunaria py-14 md:py-20"><p className="text-xs font-bold uppercase tracking-[.2em] text-[#B274A2]">Your little stack</p><h1 className="mt-3 font-display text-5xl text-[#30263B] md:text-6xl">Your bag</h1><div className="mt-10 grid gap-10 lg:grid-cols-[1fr_360px]"><div className="divide-y divide-[#eadbd9] border-y border-[#eadbd9]">{cart.map((item) => { const product = findProduct(item.id); if (!product) return null; return <div key={`${item.id}-${item.variant}`} className="flex gap-4 py-6 sm:gap-6" data-testid={`row-cart-${item.id}`}><div className="w-24 shrink-0 sm:w-32"><ProductImage product={product} /></div><div className="flex min-w-0 flex-1 flex-col justify-between gap-4 sm:flex-row"><div><Link href={`/product/${product.id}`} className="font-display text-xl text-[#30263B] hover:text-[#48458F]" data-testid={`link-cart-product-${product.id}`}>{product.title}</Link><p className="mt-1 text-sm text-[#746875]">{product.author || product.type}</p><button onClick={() => removeFromCart(item.id, item.variant)} className="mt-4 flex items-center gap-1 text-xs font-bold uppercase tracking-[.1em] text-[#B274A2] hover:text-[#48458F]" data-testid={`button-remove-${product.id}`}><Trash2 size={13} />Remove</button></div><div className="flex items-center justify-between gap-8 sm:flex-col sm:items-end"><p className="font-semibold text-[#48458F]">{money(product.price * item.quantity)}</p><div className="flex items-center border border-[#d9c5cb]"><button onClick={() => updateQuantity(item.id, item.quantity - 1, item.variant)} className="grid h-8 w-8 place-items-center text-[#48458F]" aria-label="Decrease quantity" data-testid={`button-cart-minus-${product.id}`}><Minus size={14} /></button><span className="w-8 text-center text-sm">{item.quantity}</span><button onClick={() => updateQuantity(item.id, item.quantity + 1, item.variant)} disabled={cart.filter((line) => line.id === item.id).reduce((sum, line) => sum + line.quantity, 0) >= product.stock} className="grid h-8 w-8 place-items-center text-[#48458F] disabled:cursor-not-allowed disabled:opacity-40" aria-label="Increase quantity" data-testid={`button-cart-plus-${product.id}`}><Plus size={14} /></button></div></div></div></div>; })}</div><aside className="h-fit bg-[#FFF1EC] p-6 md:p-7"><h2 className="font-display text-2xl text-[#30263B]">A few numbers</h2><div className="mt-6 space-y-4 text-sm text-[#746875]"><div className="flex justify-between"><span>Subtotal</span><span className="font-semibold text-[#30263B]">{money(cartTotal)}</span></div><div className="flex justify-between"><span>Shipping</span><span className="font-semibold text-[#30263B]">{shipping ? money(shipping) : 'Free'}</span></div><div className="border-t border-[#e2cfd0] pt-4 text-base font-bold text-[#30263B] flex justify-between"><span>Total</span><span>{money(cartTotal + shipping)}</span></div></div><Link href="/checkout" className="mt-7 flex w-full items-center justify-center gap-2 bg-[#48458F] py-3.5 text-sm font-bold text-white hover:bg-[#30263B]" data-testid="button-checkout">Continue to checkout <ArrowRight size={16} /></Link><p className="mt-4 text-center text-xs leading-5 text-[#746875]">{`Free shipping on orders over ${FREE_SHIPPING_FROM.toLocaleString('en-US')} DA. No account needed.`}</p></aside></div></div></Shell>;
-}
-
-function WishlistPage() {
-  const { wishlist, moveToCart, toggleWishlist } = useStore();
-  const { products, isLoading, isError } = useCatalog();
-  const saved = products.filter((product) => wishlist.includes(product.id));
-  if (wishlist.length > 0 && isLoading) return <Shell><CatalogNotice state="loading" /></Shell>;
-  if (wishlist.length > 0 && isError) return <Shell><CatalogNotice state="error" /></Shell>;
-  return <Shell><div className="container-lunaria py-14 md:py-20"><p className="text-xs font-bold uppercase tracking-[.2em] text-[#B274A2]">Things worth keeping</p><h1 className="mt-3 font-display text-5xl text-[#30263B] md:text-6xl">Your wishlist</h1>{saved.length === 0 ? <EmptyState title="Save a little magic" message="Tap the heart on anything that catches your eye and it will wait here for you." href="/shop" label="Browse the shelves" /> : <><p className="mt-4 text-sm text-[#746875]">{saved.length} saved {saved.length === 1 ? 'piece' : 'pieces'}</p><div className="mt-10 grid grid-cols-2 gap-x-4 gap-y-12 md:grid-cols-3 md:gap-7 lg:grid-cols-4">{saved.map((product, index) => <div key={product.id} className="relative"><ProductCard product={product} index={index} /><div className="mt-3 flex gap-2"><button onClick={() => moveToCart(product.id)} disabled={product.stock < 1} className="flex-1 border border-[#48458F] py-2 text-xs font-bold uppercase tracking-[.1em] text-[#48458F] hover:bg-[#48458F] hover:text-white disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-[#48458F]" data-testid={`button-move-cart-${product.id}`}>{product.stock < 1 ? 'Out of stock' : 'Move to bag'}</button><button onClick={() => toggleWishlist(product.id)} className="grid w-10 place-items-center border border-[#e6d4d7] text-[#B274A2]" aria-label={`Remove ${product.title}`} data-testid={`button-remove-wishlist-${product.id}`}><X size={16} /></button></div></div>)}</div></>}</div></Shell>;
 }
 
 function SearchPage() {
@@ -410,7 +380,7 @@ function OrderConfirmedPage() {
 }
 
 function Router() {
-  return <Switch><Route path="/" component={Home} /><Route path="/shop"><Catalog title="All the good things" eyebrow="The whole shop" description="A considered mix of books, notebooks, desk companions, and small gifts for curious people." /></Route><Route path="/books"><Catalog kind="book" title="Books to get lost in" eyebrow="The reading room" description="New fiction, thoughtful nonfiction, and poetry with a little weather in it." /></Route><Route path="/stationery"><Catalog kind="stationery" title="Paper for your ideas" eyebrow="The writing desk" description="Notebooks, pencils, and beautiful bits of paper for making a day feel more yours." /></Route><Route path="/product/:id" component={ProductPage} /><Route path="/about" component={About} /><Route path="/cart" component={CartPage} /><Route path="/wishlist" component={WishlistPage} /><Route path="/search" component={SearchPage} />
+  return <Switch><Route path="/" component={Home} /><Route path="/shop"><Catalog title="All the good things" eyebrow="The whole shop" description="A considered mix of books, notebooks, desk companions, and small gifts for curious people." /></Route><Route path="/books"><Catalog kind="book" title="Books to get lost in" eyebrow="The reading room" description="New fiction, thoughtful nonfiction, and poetry with a little weather in it." /></Route><Route path="/stationery"><Catalog kind="stationery" title="Paper for your ideas" eyebrow="The writing desk" description="Notebooks, pencils, and beautiful bits of paper for making a day feel more yours." /></Route><Route path="/product/:id" component={ProductPage} /><Route path="/about" component={About} /><Route path="/cart" component={CartPage} /><Route path="/search" component={SearchPage} />
 <Route path="/checkout" component={CheckoutPage} />
 <Route path="/order-confirmed" component={OrderConfirmedPage} /><Route path="/admin" component={AdminApp} /><Route path="/admin/products" component={AdminApp} /><Route path="/admin/products/new" component={AdminApp} /><Route path="/admin/products/:id" component={AdminApp} /><Route path="/admin/categories" component={AdminApp} /><Route path="/admin/categories/new" component={AdminApp} /><Route path="/admin/categories/:id" component={AdminApp} /><Route path="/admin/orders" component={AdminApp} /><Route path="/admin/orders/:id" component={AdminApp} /><Route component={NotFound} /></Switch>;
 }
