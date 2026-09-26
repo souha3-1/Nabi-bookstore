@@ -229,6 +229,16 @@ export function AdminProductsList() {
 }
 
 // ---------------------------------------------------------------- form page
+
+function slugify(title: string): string {
+  return title
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80) || 'product';
+}
 const emptyProduct: Omit<Product, 'id' | 'created_at'> = {
   slug: '', category_id: '', title: '', author: '', product_type: '', description: '', details: '',
   price: 0, stock_quantity: 0, low_stock_threshold: 5, image_url: '', variants: [], badge: '',
@@ -261,13 +271,34 @@ export function AdminProductForm() {
     event.preventDefault();
     setSaving(true);
     setError('');
-    const payload = { ...form, variants: form.variants.filter(Boolean) };
-    const result = isNew
-      ? await supabase.from('products').insert(payload)
-      : await supabase.from('products').update(payload).eq('id', params.id);
+    const cleanVariants = form.variants.filter(Boolean);
+
+    if (!isNew) {
+      // Editing never regenerates the slug: it is already live in URLs, carts and wishlists.
+      const result = await supabase.from('products').update({ ...form, variants: cleanVariants }).eq('id', params.id);
+      setSaving(false);
+      if (result.error) { setError(result.error.message); return; }
+      navigate('/admin/products');
+      return;
+    }
+
+    const baseSlug = slugify(form.title);
+    for (let suffix = 1; suffix <= 10; suffix += 1) {
+      const slug = suffix === 1 ? baseSlug : `${baseSlug}-${suffix}`;
+      const result = await supabase.from('products').insert({ ...form, slug, variants: cleanVariants });
+      if (!result.error) {
+        setSaving(false);
+        navigate('/admin/products');
+        return;
+      }
+      if (result.error.code !== '23505') {
+        setSaving(false);
+        setError(result.error.message);
+        return;
+      }
+    }
     setSaving(false);
-    if (result.error) { setError(result.error.message); return; }
-    navigate('/admin/products');
+    setError('Could not generate a unique URL for this title — try a slightly different title.');
   }
 
   if (loading) return <p className="text-sm text-[#746875]">Loading…</p>;
@@ -282,9 +313,6 @@ export function AdminProductForm() {
       <form onSubmit={submit} className="mt-6 grid max-w-2xl gap-4">
         <label className={label}>Title
           <input required className={input} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-        </label>
-        <label className={label}>Slug (used in the storefront URL)
-          <input required className={input} value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
         </label>
         <label className={label}>Category
           <select required className={input} value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })}>
