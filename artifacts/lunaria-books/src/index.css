@@ -3,6 +3,10 @@
 @import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
+:root {
+  color-scheme: only light;
+}
+
 
 @theme inline {
   --color-background: hsl(var(--background));
