@@ -28,7 +28,7 @@ function AdminLoginPage() {
   return (
     <div className="grid min-h-screen place-items-center bg-[#FFF9F7] px-4">
       <form onSubmit={submit} className="w-full max-w-sm space-y-5 border border-[#eadbd9] bg-white p-8">
-        <h1 className="font-display text-2xl text-[#30263B]">NABI BOOKS admin</h1>
+        <h1 className="font-display text-2xl text-[#30263B]">NABI NOVELS admin</h1>
         {error && <p role="alert" className="text-sm text-[#B23A48]">{error}</p>}
         <label className="block text-xs font-bold uppercase tracking-[.1em] text-[#746875]">
           Email
@@ -61,7 +61,7 @@ function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-[#FFF9F7] md:grid md:grid-cols-[220px_1fr]">
       <aside className="relative border-r border-[#eadbd9] bg-white p-5">
-        <p className="font-display text-lg text-[#30263B]">NABI BOOKS</p>
+        <p className="font-display text-lg text-[#30263B]">NABI NOVELS</p>
         <p className="text-xs text-[#746875]">Admin</p>
         <nav className="mt-8 space-y-1">
           {links.map(([href, label, Icon]) => (
